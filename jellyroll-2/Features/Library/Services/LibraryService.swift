@@ -155,14 +155,31 @@ class LibraryService {
         var components = URLComponents(url: url, resolvingAgainstBaseURL: true)!
         components.queryItems = [
             URLQueryItem(name: "Limit", value: "10"),
-            URLQueryItem(name: "Fields", value: "Overview,Genres,Tags,ProductionYear,PremiereDate,RunTimeTicks,PlaybackPositionTicks")
+            URLQueryItem(name: "Fields", value: "Overview,Genres,Tags,ProductionYear,PremiereDate,RunTimeTicks,PlaybackPositionTicks,UserData")
         ]
         
         var request = URLRequest(url: components.url!)
         request.httpMethod = "GET"
         addAuthHeaders(to: &request, token: token.accessToken)
         
-        return try await fetchItems(with: request)
+        logger.debug("Fetching continue watching items from: \(components.url?.absoluteString ?? "")")
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                logger.debug("Continue watching response status: \(httpResponse.statusCode)")
+            }
+            
+            if let responseString = String(data: data, encoding: .utf8) {
+                logger.debug("Continue watching raw response: \(responseString)")
+            }
+            
+            return try await fetchItems(with: request)
+        } catch {
+            logger.error("Error fetching continue watching items: \(error)")
+            throw error
+        }
     }
     
     func getLibraryItems(libraryId: String, limit: Int = 50) async throws -> [MediaItem] {

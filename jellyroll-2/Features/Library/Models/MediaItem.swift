@@ -81,6 +81,7 @@ struct MediaItem: Codable, Identifiable {
     let imageBlurHashes: [String: [String: String]]
     let backdropImageTags: [String]
     let imageTags: [String: String]
+    let userData: UserData
     
     // Series specific
     let seriesName: String?
@@ -89,7 +90,6 @@ struct MediaItem: Codable, Identifiable {
     let seasonNumber: Int?
     let episodeNumber: Int?
     let runTimeTicks: Int64?
-    let playbackPositionTicks: Int64?
     
     // Music specific
     let albumArtist: String?
@@ -110,13 +110,13 @@ struct MediaItem: Codable, Identifiable {
         case imageBlurHashes = "ImageBlurHashes"
         case backdropImageTags = "BackdropImageTags"
         case imageTags = "ImageTags"
+        case userData = "UserData"
         case seriesName = "SeriesName"
         case seasonName = "SeasonName"
         case episodeTitle = "EpisodeTitle"
         case seasonNumber = "ParentIndexNumber"
         case episodeNumber = "IndexNumber"
         case runTimeTicks = "RunTimeTicks"
-        case playbackPositionTicks = "PlaybackPositionTicks"
         case albumArtist = "AlbumArtist"
         case artists = "Artists"
         case album = "Album"
@@ -157,11 +157,12 @@ struct MediaItem: Codable, Identifiable {
         seasonNumber = try container.decodeIfPresent(Int.self, forKey: .seasonNumber)
         episodeNumber = try container.decodeIfPresent(Int.self, forKey: .episodeNumber)
         runTimeTicks = try container.decodeIfPresent(Int64.self, forKey: .runTimeTicks)
-        playbackPositionTicks = try container.decodeIfPresent(Int64.self, forKey: .playbackPositionTicks)
         
         albumArtist = try container.decodeIfPresent(String.self, forKey: .albumArtist)
         artists = try container.decodeIfPresent([String].self, forKey: .artists)
         album = try container.decodeIfPresent(String.self, forKey: .album)
+        
+        userData = try container.decode(UserData.self, forKey: .userData)
     }
     
     var formattedRuntime: String? {
@@ -211,5 +212,25 @@ struct MediaItem: Codable, Identifiable {
             return artists.joined(separator: ", ")
         }
         return nil
+    }
+    
+    var playbackPositionTicks: Int64? {
+        return userData.playbackPositionTicks
+    }
+}
+
+struct UserData: Codable {
+    let playbackPositionTicks: Int64?
+    let playCount: Int
+    let isFavorite: Bool
+    let played: Bool
+    let key: String
+    
+    private enum CodingKeys: String, CodingKey {
+        case playbackPositionTicks = "PlaybackPositionTicks"
+        case playCount = "PlayCount"
+        case isFavorite = "IsFavorite"
+        case played = "Played"
+        case key = "Key"
     }
 } 

@@ -24,7 +24,6 @@ actor ImageCacheService {
     func cache(image: Image, for key: String) {
         let cachedImage = CachedImage(image: image)
         cache.setObject(cachedImage, forKey: key as NSString)
-        logger.debug("Cached image for key: \(key)")
     }
     
     func clearCache() {

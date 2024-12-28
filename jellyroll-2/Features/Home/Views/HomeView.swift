@@ -178,7 +178,7 @@ struct HomeTabView: View {
                     // Featured Continue Watching Section
                     TabView {
                         ForEach(libraryViewModel.continueWatching) { item in
-                            ContinueWatchingItem(item: item)
+                            ContinueWatchingCard(item: item)
                         }
                     }
                     .tabViewStyle(.page(indexDisplayMode: .always))
@@ -190,6 +190,7 @@ struct HomeTabView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Latest Additions")
                             .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(JellyfinTheme.Text.primary)
                             .padding(.horizontal)
                         
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -330,35 +331,6 @@ struct MusicTabView: View {
             }
         }
         .padding(.vertical)
-    }
-}
-
-struct ContinueWatchingItem: View {
-    let item: MediaItem
-    
-    var body: some View {
-        GeometryReader { geometry in
-            JellyfinImage(
-                itemId: item.id,
-                imageType: .backdrop,
-                aspectRatio: 16/9,
-                cornerRadius: 0,
-                fallbackIcon: "play.circle.fill"
-            )
-            .frame(width: geometry.size.width, height: geometry.size.height)
-            .overlay {
-                VStack(alignment: .leading) {
-                    Spacer()
-                    Text(item.name)
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundStyle(JellyfinTheme.textGradient)
-                        .padding(.horizontal)
-                        .padding(.bottom, 40)
-                }
-                .background(JellyfinTheme.overlayGradient)
-            }
-        }
-        .ignoresSafeArea()
     }
 }
 
