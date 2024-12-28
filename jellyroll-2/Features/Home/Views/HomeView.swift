@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject private var loginViewModel: LoginViewModel
+    @State private var showingSettings = false
     
     var body: some View {
         NavigationView {
@@ -35,22 +36,21 @@ struct HomeView: View {
                 }
                 
                 Spacer()
-                
-                Button(action: {
-                    loginViewModel.logout()
-                }) {
-                    Label("Logout", systemImage: "rectangle.portrait.and.arrow.right")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.red)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                }
-                .padding(.horizontal)
-                .padding(.bottom)
             }
             .padding()
             .navigationTitle("Home")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showingSettings = true
+                    } label: {
+                        Image(systemName: "gear")
+                    }
+                }
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
+            }
         }
     }
 } 

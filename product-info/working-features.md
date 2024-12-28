@@ -18,6 +18,15 @@
 - Proper error handling and user feedback
 - Clean logout functionality
 
+### Settings and Profile
+- Dedicated settings screen with iOS-style layout
+- User profile display with avatar and role
+- Server connection information
+- Last login timestamp
+- App version information
+- Quick access via navigation bar
+- Centralized logout functionality
+
 ### Security
 - All network communications over HTTPS (with local exception)
 - Secure storage using iOS Keychain Services
@@ -34,6 +43,8 @@
 - Network status indicator during connection attempts
 - Server configuration accessible from navigation bar
 - Visual feedback during loading states
+- Settings sheet presentation
+- Consistent navigation patterns
 
 ### Error Handling
 - Specific error messages for:
@@ -60,9 +71,19 @@
 - Session management
 - Automatic token refresh
 
+### Settings Enhancements
+- Theme customization
+- Network configuration options
+- Cache management
+- Download settings
+- Playback preferences
+- Notification settings
+- Debug logging options
+
 ### UI/UX Improvements
 - Custom server nicknames
 - Server status indicators
 - Connection quality monitoring
 - Offline mode support
 - Quick server switching
+- Customizable home screen layout
