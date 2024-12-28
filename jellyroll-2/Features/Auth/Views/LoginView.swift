@@ -6,28 +6,30 @@ struct LoginView: View {
     
     var body: some View {
         NavigationView {
-            ZStack {
-                Color(.systemBackground)
-                    .ignoresSafeArea()
-                
-                VStack(spacing: 20) {
-                    // Logo placeholder
-                    Image(systemName: "play.circle.fill")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 100, height: 100)
-                        .foregroundColor(.accentColor)
-                        .padding(.bottom, 20)
+            ScrollView {
+                ZStack {
+                    Color(.systemBackground)
+                        .ignoresSafeArea()
                     
-                    if viewModel.showServerConfig {
-                        serverConfigurationView
-                    } else {
-                        loginFormView
+                    VStack(spacing: 20) {
+                        // Logo placeholder
+                        Image(systemName: "play.circle.fill")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 100, height: 100)
+                            .foregroundColor(.accentColor)
+                            .padding(.bottom, 20)
+                        
+                        if viewModel.showServerConfig {
+                            serverConfigurationView
+                        } else {
+                            loginFormView
+                        }
                     }
+                    .padding()
                 }
-                .padding()
-                .disabled(viewModel.isLoading)
             }
+            .disabled(viewModel.isLoading)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if !viewModel.showServerConfig {
@@ -60,39 +62,25 @@ struct LoginView: View {
                 .font(.title2)
                 .fontWeight(.bold)
             
-            TextField("Server URL", text: $viewModel.serverURL)
-                .textFieldStyle(.roundedBorder)
-                .textInputAutocapitalization(.never)
-                .keyboardType(.URL)
-                .autocorrectionDisabled()
-            
-            if !viewModel.serverHistory.isEmpty {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Recent Servers")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
-                    
-                    ForEach(viewModel.serverHistory, id: \.url) { history in
-                        Button(action: {
-                            viewModel.selectServer(history)
-                        }) {
-                            HStack {
-                                Image(systemName: "server.rack")
-                                    .foregroundColor(.accentColor)
-                                Text(history.url)
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                Text(history.lastUsed.formatted(.relative(presentation: .named)))
-                                    .foregroundColor(.secondary)
-                                    .font(.caption)
-                            }
-                        }
-                        .padding(.vertical, 8)
+            VStack(spacing: 16) {
+                TextField("Server URL", text: $viewModel.serverURL)
+                    .textFieldStyle(.roundedBorder)
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.URL)
+                    .autocorrectionDisabled()
+                
+                Button {
+                    Task {
+                        await viewModel.validateAndSaveServer()
                     }
+                } label: {
+                    Text("Connect")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.accentColor)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
                 }
-                .padding()
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(10)
             }
             
             if let errorMessage = viewModel.errorMessage {
@@ -101,17 +89,46 @@ struct LoginView: View {
                     .font(.caption)
             }
             
-            Button {
-                Task {
-                    await viewModel.validateAndSaveServer()
+            if !viewModel.serverHistory.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Recent Servers")
+                        .font(.headline)
+                        .foregroundColor(.secondary)
+                        .padding(.top, 8)
+                    
+                    Divider()
+                    
+                    ForEach(viewModel.serverHistory, id: \.url) { history in
+                        Button(action: {
+                            viewModel.selectServer(history)
+                        }) {
+                            HStack {
+                                Image(systemName: "server.rack")
+                                    .foregroundColor(.accentColor)
+                                VStack(alignment: .leading) {
+                                    Text(history.url)
+                                        .foregroundColor(.primary)
+                                        .lineLimit(1)
+                                    Text(history.lastUsed.formatted(.relative(presentation: .named)))
+                                        .foregroundColor(.secondary)
+                                        .font(.caption)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.secondary)
+                                    .font(.caption)
+                            }
+                        }
+                        .padding(.vertical, 8)
+                        
+                        if history.url != viewModel.serverHistory.last?.url {
+                            Divider()
+                        }
+                    }
                 }
-            } label: {
-                Text("Connect")
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.accentColor)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
+                .padding()
+                .background(Color.secondary.opacity(0.1))
+                .cornerRadius(10)
             }
         }
     }
