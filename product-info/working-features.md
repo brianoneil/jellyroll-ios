@@ -1,41 +1,42 @@
 # Authentication and Server Connection Features
 
-## Server Connection
-- Allow users to enter Jellyfin server URL (e.g., http://server-address:port)
-- Validate server URL format and connection before proceeding
-- Store server URL securely in device keychain
-- Provide ability to modify server URL from settings
-- Display friendly error messages for connection issues
-- Auto-detect common local network Jellyfin servers (future enhancement)
+## Implemented Features
 
-## User Authentication
-- Username/password login form with proper validation
-- Secure storage of authentication tokens in iOS keychain
-- Automatic token refresh mechanism
+### Server Management
+- Server URL configuration and validation
+- Secure storage of server configuration in keychain
+- Server history tracking (last 5 servers)
+- Quick server selection from history
+- Relative timestamp display for server history
+- Server connection validation before saving
+
+### Authentication
+- Username/password login form
+- Secure storage of authentication tokens in keychain
+- Automatic token management
 - Silent re-authentication on app launch
-- Graceful handling of authentication errors
-- Clear logout functionality that removes stored credentials
-- Option to remember login state (enabled by default)
+- Proper error handling and user feedback
+- Clean logout functionality
 
-## UI/UX Requirements
+### Security
+- All network communications over HTTPS (with local exception)
+- Secure storage using iOS Keychain Services
+- No plaintext storage of passwords
+- Proper certificate validation
+- Secure token management
+
+### UI/UX
 - Modern, clean login interface following iOS design guidelines
 - Clear error states and loading indicators
 - Smooth transitions between connection and login steps
 - Support for both light and dark mode
-- Accessibility support (VoiceOver, Dynamic Type)
 - Proper keyboard handling and input validation
 - Network status indicator during connection attempts
+- Server configuration accessible from navigation bar
+- Visual feedback during loading states
 
-## Security Requirements
-- All network communications over HTTPS
-- Secure storage of credentials using iOS Keychain Services
-- No plaintext storage of passwords
-- Proper certificate validation
-- Automatic logout on prolonged inactivity (configurable)
-- Secure token management
-
-## Error Handling
-- Clear error messages for:
+### Error Handling
+- Specific error messages for:
   - Invalid server URL
   - Server connection failures
   - Invalid credentials
@@ -44,10 +45,24 @@
   - Token expiration
   - Version incompatibility
 
-## Testing Requirements
-- Unit tests for authentication logic
-- UI tests for login flow
-- Network connectivity edge cases
-- Keychain storage tests
-- Background app state handling
-- Multiple device testing
+## Planned Features
+
+### Server Management
+- Server auto-discovery on local network
+- Server information display (version, name)
+- Ability to remove servers from history
+- URL format validation and auto-correction
+
+### Authentication
+- Multiple user profiles
+- Advanced security settings
+- Biometric authentication option
+- Session management
+- Automatic token refresh
+
+### UI/UX Improvements
+- Custom server nicknames
+- Server status indicators
+- Connection quality monitoring
+- Offline mode support
+- Quick server switching
