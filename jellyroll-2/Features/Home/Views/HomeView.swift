@@ -8,28 +8,32 @@ struct HomeView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
+            ZStack(alignment: .top) {
+                JellyfinTheme.backgroundColor.ignoresSafeArea()
+                
                 // Top Navigation Bar
                 HStack {
-                    Image(systemName: "play.circle.fill") // Replace with app logo
+                    Image(systemName: "play.circle.fill")
                         .font(.title)
-                        .foregroundColor(.accentColor)
+                        .foregroundStyle(JellyfinTheme.accentGradient)
                     
                     Spacer()
                     
                     HStack(spacing: 20) {
                         Button(action: {}) {
                             Image(systemName: "airplayvideo")
+                                .foregroundStyle(.white)
                         }
                         
                         Button(action: {}) {
                             Image(systemName: "bell")
+                                .foregroundStyle(.white)
                                 .overlay(
                                     Circle()
-                                        .fill(Color.blue)
+                                        .fill(Color(red: 0.4, green: 0.5, blue: 0.9))
                                         .frame(width: 8, height: 8)
                                         .offset(x: 6, y: -6),
-                                    alignment: .topTrailing
+                                        alignment: .topTrailing
                                 )
                         }
                         
@@ -37,7 +41,7 @@ struct HomeView: View {
                             showingSettings = true
                         }) {
                             Circle()
-                                .fill(Color.accentColor)
+                                .fill(JellyfinTheme.accentGradient)
                                 .frame(width: 28, height: 28)
                                 .overlay(
                                     Text(String(loginViewModel.user?.name.prefix(1).uppercased() ?? "?"))
@@ -49,70 +53,81 @@ struct HomeView: View {
                     }
                 }
                 .padding(.horizontal)
-                .padding(.bottom)
+                .padding(.top, 8)
                 
-                // Library Tabs
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 24) {
-                        TabButton(title: "Home", isSelected: selectedTab == 0) {
-                            selectedTab = 0
-                        }
-                        
-                        if !libraryViewModel.movieLibraries.isEmpty {
-                            TabButton(title: "Movies", isSelected: selectedTab == 1) {
-                                selectedTab = 1
+                VStack(spacing: 0) {
+                    Color.clear
+                        .frame(height: 52) // Height for navigation bar
+                    
+                    // Library Tabs
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 24) {
+                            TabButton(title: "Home", isSelected: selectedTab == 0) {
+                                selectedTab = 0
+                            }
+                            
+                            if !libraryViewModel.movieLibraries.isEmpty {
+                                TabButton(title: "Movies", isSelected: selectedTab == 1) {
+                                    selectedTab = 1
+                                }
+                            }
+                            
+                            if !libraryViewModel.tvShowLibraries.isEmpty {
+                                TabButton(title: "Series", isSelected: selectedTab == 2) {
+                                    selectedTab = 2
+                                }
+                            }
+                            
+                            if !libraryViewModel.musicLibraries.isEmpty {
+                                TabButton(title: "Music", isSelected: selectedTab == 3) {
+                                    selectedTab = 3
+                                }
                             }
                         }
-                        
-                        if !libraryViewModel.tvShowLibraries.isEmpty {
-                            TabButton(title: "Series", isSelected: selectedTab == 2) {
-                                selectedTab = 2
-                            }
-                        }
-                        
-                        if !libraryViewModel.musicLibraries.isEmpty {
-                            TabButton(title: "Music", isSelected: selectedTab == 3) {
-                                selectedTab = 3
-                            }
-                        }
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
-                }
-                
-                // Content Area
-                ScrollView {
-                    if libraryViewModel.isLoading {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .padding(.top, 100)
-                    } else if let errorMessage = libraryViewModel.errorMessage {
-                        Text(errorMessage)
-                            .foregroundColor(.red)
-                            .padding()
-                    } else {
-                        switch selectedTab {
-                        case 0:
-                            HomeTabView(libraries: libraryViewModel.libraries, libraryViewModel: libraryViewModel)
-                        case 1:
-                            MoviesTabView(libraries: libraryViewModel.movieLibraries, libraryViewModel: libraryViewModel)
-                        case 2:
-                            SeriesTabView(libraries: libraryViewModel.tvShowLibraries, libraryViewModel: libraryViewModel)
-                        case 3:
-                            MusicTabView(libraries: libraryViewModel.musicLibraries, libraryViewModel: libraryViewModel)
-                        default:
-                            EmptyView()
+                    .padding(.vertical, 2)
+                    
+                    // Content Area
+                    ScrollView {
+                        if libraryViewModel.isLoading {
+                            ProgressView()
+                                .scaleEffect(1.5)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .padding(.top, 100)
+                        } else if let errorMessage = libraryViewModel.errorMessage {
+                            Text(errorMessage)
+                                .foregroundColor(.red)
+                                .padding()
+                        } else {
+                            switch selectedTab {
+                            case 0:
+                                HomeTabView(libraries: libraryViewModel.libraries, libraryViewModel: libraryViewModel)
+                                    .padding(.top, 16)
+                            case 1:
+                                MoviesTabView(libraries: libraryViewModel.movieLibraries, libraryViewModel: libraryViewModel)
+                                    .padding(.top, 16)
+                            case 2:
+                                SeriesTabView(libraries: libraryViewModel.tvShowLibraries, libraryViewModel: libraryViewModel)
+                                    .padding(.top, 16)
+                            case 3:
+                                MusicTabView(libraries: libraryViewModel.musicLibraries, libraryViewModel: libraryViewModel)
+                                    .padding(.top, 16)
+                            default:
+                                EmptyView()
+                            }
                         }
                     }
                 }
             }
             .navigationBarHidden(true)
-        }
-        .sheet(isPresented: $showingSettings) {
-            SettingsView()
-        }
-        .task {
-            await libraryViewModel.loadLibraries()
+            .preferredColorScheme(.dark)
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
+            }
+            .task {
+                await libraryViewModel.loadLibraries()
+            }
         }
     }
 }
@@ -122,16 +137,31 @@ struct TabButton: View {
     let isSelected: Bool
     let action: () -> Void
     
+    private let accentGradient = LinearGradient(
+        colors: [
+            Color(red: 0.6, green: 0.4, blue: 0.8), // Purple
+            Color(red: 0.4, green: 0.5, blue: 0.9)  // Blue
+        ],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+    
     var body: some View {
         Button(action: action) {
             VStack(spacing: 8) {
                 Text(title)
                     .fontWeight(isSelected ? .bold : .regular)
-                    .foregroundColor(isSelected ? .primary : .secondary)
+                    .foregroundColor(isSelected ? .white : .gray)
                 
-                Rectangle()
-                    .fill(isSelected ? Color.primary : Color.clear)
-                    .frame(height: 2)
+                if isSelected {
+                    Rectangle()
+                        .fill(accentGradient)
+                        .frame(height: 2)
+                } else {
+                    Rectangle()
+                        .fill(Color.clear)
+                        .frame(height: 2)
+                }
             }
         }
     }
@@ -142,65 +172,30 @@ struct HomeTabView: View {
     @ObservedObject var libraryViewModel: LibraryViewModel
     
     var body: some View {
-        VStack(spacing: 24) {
-            if !libraryViewModel.continueWatching.isEmpty {
-                // Continue Watching Section
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Continue Watching")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                    
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 16) {
-                            ForEach(libraryViewModel.continueWatching) { item in
-                                ContinueWatchingItem(item: item)
-                            }
+        ScrollView {
+            VStack(spacing: 16) {
+                if !libraryViewModel.continueWatching.isEmpty {
+                    // Featured Continue Watching Section
+                    TabView {
+                        ForEach(libraryViewModel.continueWatching) { item in
+                            ContinueWatchingItem(item: item)
                         }
-                        .padding(.horizontal)
                     }
+                    .tabViewStyle(.page(indexDisplayMode: .always))
+                    .frame(height: 220)
                 }
-                .padding(.top)
-            }
-            
-            if !libraryViewModel.latestMedia.isEmpty {
-                // Latest Media Section
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Latest Additions")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                    
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 16) {
-                            ForEach(libraryViewModel.latestMedia) { item in
-                                LatestMediaItem(item: item)
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
-                }
-            }
-        }
-        .padding(.vertical)
-    }
-}
-
-struct MoviesTabView: View {
-    let libraries: [LibraryItem]
-    @ObservedObject var libraryViewModel: LibraryViewModel
-    
-    var body: some View {
-        VStack(spacing: 24) {
-            ForEach(libraries) { library in
-                if !libraryViewModel.getMovieItems(for: library.id).isEmpty {
+                
+                if !libraryViewModel.latestMedia.isEmpty {
+                    // Latest Media Section
                     VStack(alignment: .leading, spacing: 16) {
-                        Text(library.name)
-                            .font(.title2)
-                            .fontWeight(.bold)
+                        Text("Latest Additions")
+                            .font(.system(size: 24, weight: .bold))
+                            .padding(.horizontal)
                         
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 16) {
-                                ForEach(libraryViewModel.getMovieItems(for: library.id)) { item in
-                                    MovieItem(item: item)
+                                ForEach(libraryViewModel.latestMedia) { item in
+                                    LatestMediaItem(item: item)
                                 }
                             }
                             .padding(.horizontal)
@@ -208,8 +203,75 @@ struct MoviesTabView: View {
                     }
                 }
             }
+            .padding(.top, 16)
         }
-        .padding(.vertical)
+    }
+}
+
+struct MoviesTabView: View {
+    let libraries: [LibraryItem]
+    @ObservedObject var libraryViewModel: LibraryViewModel
+    
+    // Grid layout with 2 columns
+    private let columns = [
+        GridItem(.flexible(), spacing: 16),
+        GridItem(.flexible(), spacing: 16)
+    ]
+    
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                ForEach(libraries) { library in
+                    if !libraryViewModel.getMovieItems(for: library.id).isEmpty {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text(library.name)
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .padding(.horizontal)
+                            
+                            LazyVGrid(columns: columns, spacing: 24) {
+                                ForEach(libraryViewModel.getMovieItems(for: library.id)) { item in
+                                    MovieCard(item: item, style: .grid)
+                                }
+                            }
+                            .padding(.horizontal)
+                        }
+                    }
+                }
+            }
+            .padding(.vertical)
+        }
+    }
+}
+
+struct LatestMediaItem: View {
+    let item: MediaItem
+    
+    var body: some View {
+        if item.type.lowercased() == "movie" {
+            MovieCard(item: item, style: .list)
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                JellyfinImage(
+                    itemId: item.id,
+                    imageType: .primary,
+                    aspectRatio: 2/3,
+                    fallbackIcon: "film"
+                )
+                .frame(width: 160, height: 240)
+                
+                Text(item.name)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
+                
+                if let year = item.yearText {
+                    Text(year)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .frame(width: 160)
+        }
     }
 }
 
@@ -275,94 +337,28 @@ struct ContinueWatchingItem: View {
     let item: MediaItem
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.secondary.opacity(0.2))
-                .frame(width: 240, height: 135)
-                .overlay(
-                    Image(systemName: "play.circle.fill")
-                        .font(.largeTitle)
-                        .foregroundColor(.white)
-                )
-            
-            Text(item.name)
-                .fontWeight(.medium)
-                .lineLimit(1)
-            
-            if let episodeInfo = item.episodeInfo, let remainingTime = item.remainingTime {
-                Text("\(episodeInfo) • \(remainingTime)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            
-            if let progress = item.playbackProgress {
-                ProgressView(value: progress)
-                    .tint(.accentColor)
-            }
-        }
-        .frame(width: 240)
-    }
-}
-
-struct LatestMediaItem: View {
-    let item: MediaItem
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.secondary.opacity(0.2))
-                .frame(width: 160, height: 240)
-                .overlay(
-                    Image(systemName: "film")
-                        .font(.largeTitle)
-                        .foregroundColor(.white)
-                )
-            
-            Text(item.name)
-                .fontWeight(.medium)
-                .lineLimit(1)
-            
-            if let year = item.yearText {
-                Text(year)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-        }
-        .frame(width: 160)
-    }
-}
-
-struct MovieItem: View {
-    let item: MediaItem
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.secondary.opacity(0.2))
-                .frame(width: 160, height: 240)
-                .overlay(
-                    Image(systemName: "film")
-                        .font(.largeTitle)
-                        .foregroundColor(.white)
-                )
-            
-            Text(item.name)
-                .fontWeight(.medium)
-                .lineLimit(1)
-            
-            HStack {
-                if let year = item.yearText {
-                    Text(year)
+        GeometryReader { geometry in
+            JellyfinImage(
+                itemId: item.id,
+                imageType: .backdrop,
+                aspectRatio: 16/9,
+                cornerRadius: 0,
+                fallbackIcon: "play.circle.fill"
+            )
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            .overlay {
+                VStack(alignment: .leading) {
+                    Spacer()
+                    Text(item.name)
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundStyle(JellyfinTheme.textGradient)
+                        .padding(.horizontal)
+                        .padding(.bottom, 40)
                 }
-                if let genre = item.genreText {
-                    Text("•")
-                    Text(genre)
-                }
+                .background(JellyfinTheme.overlayGradient)
             }
-            .font(.caption)
-            .foregroundColor(.secondary)
         }
-        .frame(width: 160)
+        .ignoresSafeArea()
     }
 }
 
@@ -371,17 +367,17 @@ struct SeriesItem: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.secondary.opacity(0.2))
-                .frame(width: 160, height: 240)
-                .overlay(
-                    Image(systemName: "tv")
-                        .font(.largeTitle)
-                        .foregroundColor(.white)
-                )
+            JellyfinImage(
+                itemId: item.id,
+                imageType: .primary,
+                aspectRatio: 2/3,
+                fallbackIcon: "tv"
+            )
+            .frame(width: 160, height: 240)
             
             Text(item.name)
-                .fontWeight(.medium)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(JellyfinTheme.Text.primary)
                 .lineLimit(1)
             
             HStack {
@@ -394,9 +390,11 @@ struct SeriesItem: View {
                 }
             }
             .font(.caption)
-            .foregroundColor(.secondary)
+            .foregroundColor(JellyfinTheme.Text.secondary)
         }
-        .frame(width: 160)
+        .padding(8)
+        .background(JellyfinTheme.elevatedSurfaceColor)
+        .cornerRadius(12)
     }
 }
 
@@ -405,26 +403,28 @@ struct MusicItem: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.secondary.opacity(0.2))
-                .frame(width: 160, height: 160)
-                .overlay(
-                    Image(systemName: "music.note")
-                        .font(.largeTitle)
-                        .foregroundColor(.white)
-                )
+            JellyfinImage(
+                itemId: item.id,
+                imageType: .primary,
+                aspectRatio: 1,
+                fallbackIcon: "music.note"
+            )
+            .frame(width: 160, height: 160)
             
             Text(item.name)
-                .fontWeight(.medium)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(JellyfinTheme.Text.primary)
                 .lineLimit(1)
             
             if let artist = item.artistText, let year = item.yearText {
                 Text("\(artist) • \(year)")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(JellyfinTheme.Text.secondary)
                     .lineLimit(1)
             }
         }
-        .frame(width: 160)
+        .padding(8)
+        .background(JellyfinTheme.elevatedSurfaceColor)
+        .cornerRadius(12)
     }
 } 

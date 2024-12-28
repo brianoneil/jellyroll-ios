@@ -8,7 +8,7 @@ struct LoginView: View {
         NavigationView {
             ScrollView {
                 ZStack {
-                    Color(.systemBackground)
+                    JellyfinTheme.backgroundColor
                         .ignoresSafeArea()
                     
                     VStack(spacing: 20) {
@@ -17,7 +17,7 @@ struct LoginView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 100, height: 100)
-                            .foregroundColor(.accentColor)
+                            .foregroundStyle(JellyfinTheme.accentGradient)
                             .padding(.bottom, 20)
                         
                         if viewModel.showServerConfig {
@@ -37,6 +37,7 @@ struct LoginView: View {
                         Button("Server") {
                             viewModel.showServerConfiguration()
                         }
+                        .foregroundColor(JellyfinTheme.Text.primary)
                     }
                 }
             }
@@ -49,6 +50,7 @@ struct LoginView: View {
                 }
             }
         }
+        .preferredColorScheme(.dark)
         .onChange(of: viewModel.isAuthenticated) { isAuthenticated in
             if isAuthenticated {
                 dismiss()
@@ -61,6 +63,7 @@ struct LoginView: View {
             Text("Connect to Server")
                 .font(.title2)
                 .fontWeight(.bold)
+                .foregroundColor(JellyfinTheme.Text.primary)
             
             VStack(spacing: 16) {
                 TextField("Server URL", text: $viewModel.serverURL)
@@ -68,6 +71,7 @@ struct LoginView: View {
                     .textInputAutocapitalization(.never)
                     .keyboardType(.URL)
                     .autocorrectionDisabled()
+                    .background(JellyfinTheme.surfaceColor)
                 
                 Button {
                     Task {
@@ -77,7 +81,7 @@ struct LoginView: View {
                     Text("Connect")
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.accentColor)
+                        .background(JellyfinTheme.accentGradient)
                         .foregroundColor(.white)
                         .cornerRadius(10)
                 }
@@ -93,10 +97,11 @@ struct LoginView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Recent Servers")
                         .font(.headline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(JellyfinTheme.Text.secondary)
                         .padding(.top, 8)
                     
                     Divider()
+                        .background(JellyfinTheme.Text.tertiary)
                     
                     ForEach(viewModel.serverHistory, id: \.url) { history in
                         Button(action: {
@@ -104,18 +109,18 @@ struct LoginView: View {
                         }) {
                             HStack {
                                 Image(systemName: "server.rack")
-                                    .foregroundColor(.accentColor)
+                                    .foregroundStyle(JellyfinTheme.accentGradient)
                                 VStack(alignment: .leading) {
                                     Text(history.url)
-                                        .foregroundColor(.primary)
+                                        .foregroundColor(JellyfinTheme.Text.primary)
                                         .lineLimit(1)
                                     Text(history.lastUsed.formatted(.relative(presentation: .named)))
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(JellyfinTheme.Text.secondary)
                                         .font(.caption)
                                 }
                                 Spacer()
                                 Image(systemName: "chevron.right")
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(JellyfinTheme.Text.secondary)
                                     .font(.caption)
                             }
                         }
@@ -123,11 +128,12 @@ struct LoginView: View {
                         
                         if history.url != viewModel.serverHistory.last?.url {
                             Divider()
+                                .background(JellyfinTheme.Text.tertiary)
                         }
                     }
                 }
                 .padding()
-                .background(Color.secondary.opacity(0.1))
+                .background(JellyfinTheme.elevatedSurfaceColor)
                 .cornerRadius(10)
             }
         }
@@ -138,15 +144,18 @@ struct LoginView: View {
             Text("Sign In")
                 .font(.title2)
                 .fontWeight(.bold)
+                .foregroundColor(JellyfinTheme.Text.primary)
             
             VStack(spacing: 15) {
                 TextField("Username", text: $viewModel.username)
                     .textFieldStyle(.roundedBorder)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    .background(JellyfinTheme.surfaceColor)
                 
                 SecureField("Password", text: $viewModel.password)
                     .textFieldStyle(.roundedBorder)
+                    .background(JellyfinTheme.surfaceColor)
             }
             
             if let errorMessage = viewModel.errorMessage {
@@ -163,7 +172,7 @@ struct LoginView: View {
                 Text("Sign In")
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.accentColor)
+                    .background(JellyfinTheme.accentGradient)
                     .foregroundColor(.white)
                     .cornerRadius(10)
             }
