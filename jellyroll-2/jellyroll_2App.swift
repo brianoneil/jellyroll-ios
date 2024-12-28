@@ -6,27 +6,37 @@
 //
 
 import SwiftUI
-import SwiftData
 
 @main
 struct jellyroll_2App: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    @StateObject private var loginViewModel = LoginViewModel()
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            NavigationStack {
+                Group {
+                    if loginViewModel.isInitializing {
+                        ProgressView("Loading...")
+                            .scaleEffect(1.5)
+                    } else if loginViewModel.isAuthenticated {
+                        HomeView()
+                    } else {
+                        LoginView()
+                    }
+                }
+                .environmentObject(loginViewModel)
+            }
         }
-        .modelContainer(sharedModelContainer)
+    }
+}
+
+private struct LoginViewModelKey: EnvironmentKey {
+    static let defaultValue: LoginViewModel? = nil
+}
+
+extension EnvironmentValues {
+    var loginViewModel: LoginViewModel? {
+        get { self[LoginViewModelKey.self] }
+        set { self[LoginViewModelKey.self] = newValue }
     }
 }
