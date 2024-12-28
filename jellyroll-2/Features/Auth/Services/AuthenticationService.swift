@@ -38,11 +38,7 @@ class AuthenticationService {
     static let shared = AuthenticationService()
     private let keychainService = KeychainService.shared
     private let logger = Logger(subsystem: "com.jellyroll.app", category: "Authentication")
-    private let deviceId = UUID().uuidString
-    private let clientName = "Jellyroll iOS"
-    private let clientVersion = "1.0.0"
-    private let serverHistoryKey = "server_history"
-    private let maxServerHistory = 5
+    private let config = JellyfinClientConfig.shared
     
     private lazy var jsonDecoder: JSONDecoder = {
         let decoder = JSONDecoder()
@@ -51,20 +47,17 @@ class AuthenticationService {
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
         
-        // Handle Jellyfin's date format with microseconds
-        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'"
-        
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let dateString = try container.decode(String.self)
             
-            // Try the primary format (with microseconds)
+            // Try parsing with microseconds
             formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'"
             if let date = formatter.date(from: dateString) {
                 return date
             }
             
-            // Fallback to format without microseconds
+            // Try without microseconds
             formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'"
             if let date = formatter.date(from: dateString) {
                 return date
@@ -76,61 +69,15 @@ class AuthenticationService {
         return decoder
     }()
     
-    private lazy var jsonEncoder: JSONEncoder = {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        return encoder
-    }()
-    
-    private var authorizationHeader: String {
-        return [
-            "MediaBrowser Client=\(clientName)",
-            "Device=iOS",
-            "DeviceId=\(deviceId)",
-            "Version=\(clientVersion)"
-        ].joined(separator: ", ")
-    }
-    
     private init() {}
     
-    private func addCommonHeaders(to request: inout URLRequest) {
-        request.setValue(authorizationHeader, forHTTPHeaderField: "X-Emby-Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-    }
-    
-    // MARK: - Server History
-    
-    func getServerHistory() -> [ServerHistory] {
-        do {
-            if let data = UserDefaults.standard.data(forKey: serverHistoryKey),
-               let history = try? jsonDecoder.decode([ServerHistory].self, from: data) {
-                return history.sorted { $0.lastUsed > $1.lastUsed }
-            }
-        }
-        return []
-    }
-    
-    private func addToServerHistory(_ urlString: String) {
-        var history = getServerHistory()
-        
-        // Remove existing entry if present
-        history.removeAll { $0.url == urlString }
-        
-        // Add new entry at the beginning
-        history.insert(ServerHistory(url: urlString), at: 0)
-        
-        // Keep only the most recent entries
-        if history.count > maxServerHistory {
-            history = Array(history.prefix(maxServerHistory))
-        }
-        
-        // Save updated history
-        do {
-            let data = try jsonEncoder.encode(history)
-            UserDefaults.standard.set(data, forKey: serverHistoryKey)
-        } catch {
-            logger.error("Failed to save server history: \(error.localizedDescription)")
+    private func addAuthHeaders(to request: inout URLRequest, token: String? = nil) {
+        config.addCommonHeaders(to: &request)
+        if let token = token {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            request.setValue(config.getAuthorizationHeader(with: token), forHTTPHeaderField: "X-Emby-Authorization")
+        } else {
+            request.setValue(config.getAuthorizationHeader(with: nil), forHTTPHeaderField: "X-Emby-Authorization")
         }
     }
     
@@ -152,7 +99,6 @@ class AuthenticationService {
         
         logger.debug("Server configuration validated successfully")
         try keychainService.saveServerConfiguration(config)
-        addToServerHistory(urlString)
         return config
     }
     
@@ -173,7 +119,7 @@ class AuthenticationService {
         let loginURL = config.serverURL.appendingPathComponent("Users/AuthenticateByName")
         var request = URLRequest(url: loginURL)
         request.httpMethod = "POST"
-        addCommonHeaders(to: &request)
+        addAuthHeaders(to: &request)
         
         let loginRequest = LoginRequest(username: username, pw: password)
         request.httpBody = try JSONEncoder().encode(loginRequest)
@@ -237,7 +183,7 @@ class AuthenticationService {
         let systemURL = config.serverURL.appendingPathComponent("System/Info/Public")
         var request = URLRequest(url: systemURL)
         request.httpMethod = "GET"
-        addCommonHeaders(to: &request)
+        addAuthHeaders(to: &request)
         
         do {
             logger.debug("Validating server at: \(systemURL)")

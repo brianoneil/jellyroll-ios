@@ -5,6 +5,7 @@ import OSLog
 @MainActor
 class LoginViewModel: ObservableObject {
     private let authService = AuthenticationService.shared
+    private let serverHistoryService = ServerHistoryService.shared
     private let logger = Logger(subsystem: "com.jellyroll.app", category: "LoginViewModel")
     
     @Published var serverURL = ""
@@ -26,7 +27,7 @@ class LoginViewModel: ObservableObject {
     }
     
     private func loadServerHistory() {
-        serverHistory = authService.getServerHistory()
+        serverHistory = serverHistoryService.getServerHistory()
     }
     
     func selectServer(_ history: ServerHistory) {
@@ -70,6 +71,8 @@ class LoginViewModel: ObservableObject {
         
         do {
             _ = try await authService.setServerConfiguration(serverURL)
+            serverHistoryService.addToHistory(serverURL)
+            loadServerHistory()
             logger.debug("Server configuration saved successfully")
             showServerConfig = false
         } catch AuthenticationError.invalidServerURL {
