@@ -35,17 +35,52 @@ struct MovieCard: View {
         self.style = style
     }
     
+    private var progressPercentage: Double {
+        if let position = item.playbackPositionTicks,
+           let total = item.runTimeTicks,
+           total > 0 {
+            return Double(position) / Double(total)
+        }
+        return 0
+    }
+    
+    private var hasProgress: Bool {
+        return progressPercentage > 0
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Poster Image
-            JellyfinImage(
-                itemId: item.id,
-                imageType: .primary,
-                aspectRatio: 2/3,
-                fallbackIcon: "film"
-            )
-            .frame(maxWidth: style.imageWidth)
-            .frame(height: style.imageHeight)
+            // Poster Image with Progress Overlay
+            ZStack(alignment: .bottom) {
+                JellyfinImage(
+                    itemId: item.id,
+                    imageType: .primary,
+                    aspectRatio: 2/3,
+                    fallbackIcon: "film"
+                )
+                .frame(maxWidth: style.imageWidth)
+                .frame(height: style.imageHeight)
+                
+                // Progress Bar (only shown if there's progress)
+                if hasProgress {
+                    GeometryReader { metrics in
+                        ZStack(alignment: .leading) {
+                            // Background
+                            Rectangle()
+                                .fill(Color.white.opacity(0.2))
+                                .frame(height: 3)
+                            
+                            // Progress
+                            Rectangle()
+                                .fill(JellyfinTheme.accentGradient)
+                                .frame(width: max(0, min(metrics.size.width * progressPercentage, metrics.size.width)), height: 3)
+                        }
+                        .clipShape(Capsule())
+                    }
+                    .frame(height: 3)
+                    .padding(.horizontal, 8)
+                }
+            }
             
             // Movie Title
             Text(item.name)

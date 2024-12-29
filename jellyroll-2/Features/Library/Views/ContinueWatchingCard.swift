@@ -49,10 +49,12 @@ struct ContinueWatchingCard: View {
                     itemId: item.id,
                     imageType: .backdrop,
                     aspectRatio: 16/9,
-                    cornerRadius: 12,
+                    cornerRadius: 0,
                     fallbackIcon: "play.circle.fill"
                 )
-                .frame(width: geometry.size.width, height: geometry.size.height)
+                .frame(width: UIScreen.main.bounds.width)
+                .frame(height: geometry.size.height)
+                .clipped()
                 
                 // Play Button Overlay (visible on hover)
                 if isHovered {
@@ -103,8 +105,8 @@ struct ContinueWatchingCard: View {
                         }
                         .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
                         
-                        // Progress info
-                        HStack(spacing: 8) {
+                        // Bottom row with progress and play button
+                        HStack {
                             // Progress indicator
                             HStack(spacing: 4) {
                                 Image(systemName: "clock.fill")
@@ -118,9 +120,22 @@ struct ContinueWatchingCard: View {
                             .padding(.horizontal, 6)
                             .background(.ultraThinMaterial)
                             .cornerRadius(4)
+                            
+                            Spacer()
+                            
+                            // Play button
+                            HStack(spacing: 4) {
+                                Image(systemName: "play.fill")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(.white)
+                            }
+                            .padding(10)
+                            .background(JellyfinTheme.accentGradient)
+                            .clipShape(Circle())
+                            .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                         }
                     }
-                    .padding(.horizontal)
+                    .padding(.horizontal, 16)
                     .padding(.bottom, 12)
                     
                     // Progress Bar
@@ -136,10 +151,10 @@ struct ContinueWatchingCard: View {
                                 .fill(JellyfinTheme.accentGradient)
                                 .frame(width: max(0, min(metrics.size.width * progressPercentage, metrics.size.width)), height: 4)
                         }
-                        .clipShape(Capsule())
                     }
                     .frame(height: 4)
                 }
+                .frame(maxWidth: .infinity)
                 .background(
                     LinearGradient(
                         colors: [
@@ -152,7 +167,7 @@ struct ContinueWatchingCard: View {
                     )
                 )
             }
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .frame(maxWidth: .infinity)
             .onHover { hovering in
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isHovered = hovering
@@ -161,6 +176,7 @@ struct ContinueWatchingCard: View {
             .scaleEffect(isHovered ? 1.02 : 1.0)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
         }
+        .frame(maxWidth: .infinity)
     }
     
     private func formatEpisodeInfo() -> String? {

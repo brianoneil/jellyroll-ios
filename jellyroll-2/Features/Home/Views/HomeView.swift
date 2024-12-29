@@ -182,7 +182,9 @@ struct HomeTabView: View {
                         }
                     }
                     .tabViewStyle(.page(indexDisplayMode: .always))
+                    .frame(maxWidth: .infinity)
                     .frame(height: 220)
+                    .listRowInsets(EdgeInsets())
                 }
                 
                 if !libraryViewModel.latestMedia.isEmpty {
@@ -206,6 +208,7 @@ struct HomeTabView: View {
             }
             .padding(.top, 16)
         }
+        .edgesIgnoringSafeArea([.leading, .trailing])
     }
 }
 
