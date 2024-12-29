@@ -4,6 +4,7 @@ struct MovieCard: View {
     let item: MediaItem
     let style: Style
     @State private var isHovered = false
+    @State private var showingPlayer = false
     
     enum Style {
         case grid
@@ -67,15 +68,19 @@ struct MovieCard: View {
                     Spacer()
                     
                     // Play button
-                    HStack(spacing: 4) {
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(.white)
+                    Button(action: {
+                        showingPlayer = true
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "play.fill")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(.white)
+                        }
+                        .padding(10)
+                        .background(JellyfinTheme.accentGradient)
+                        .clipShape(Circle())
+                        .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                     }
-                    .padding(10)
-                    .background(JellyfinTheme.accentGradient)
-                    .clipShape(Circle())
-                    .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                     .padding([.trailing, .bottom], 12)
                 }
                 
@@ -155,5 +160,10 @@ struct MovieCard: View {
         .cornerRadius(12)
         .scaleEffect(isHovered ? 1.02 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
+        .fullScreenCover(isPresented: $showingPlayer) {
+            NavigationView {
+                VideoPlayerView(item: item)
+            }
+        }
     }
 } 

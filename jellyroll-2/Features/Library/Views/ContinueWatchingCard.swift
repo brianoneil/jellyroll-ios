@@ -5,6 +5,7 @@ struct ContinueWatchingCard: View {
     let item: MediaItem
     private let logger = Logger(subsystem: "com.jellyroll.app", category: "ContinueWatchingCard")
     @State private var isHovered = false
+    @State private var showingPlayer = false
     
     private var progressPercentage: Double {
         logger.notice("🎬 PROGRESS DEBUG [Item: \(item.name)] ==================")
@@ -58,15 +59,19 @@ struct ContinueWatchingCard: View {
                 
                 // Play Button Overlay (visible on hover)
                 if isHovered {
-                    Circle()
-                        .fill(.ultraThinMaterial)
-                        .frame(width: 80, height: 80)
-                        .overlay(
-                            Image(systemName: "play.fill")
-                                .font(.system(size: 30))
-                                .foregroundStyle(JellyfinTheme.accentGradient)
-                        )
-                        .transition(.scale.combined(with: .opacity))
+                    Button(action: {
+                        showingPlayer = true
+                    }) {
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .frame(width: 80, height: 80)
+                            .overlay(
+                                Image(systemName: "play.fill")
+                                    .font(.system(size: 30))
+                                    .foregroundStyle(JellyfinTheme.accentGradient)
+                            )
+                    }
+                    .transition(.scale.combined(with: .opacity))
                 }
                 
                 // Content Overlay
@@ -127,15 +132,19 @@ struct ContinueWatchingCard: View {
                             Spacer()
                             
                             // Play button
-                            HStack(spacing: 4) {
-                                Image(systemName: "play.fill")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundStyle(.white)
+                            Button(action: {
+                                showingPlayer = true
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "play.fill")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(.white)
+                                }
+                                .padding(10)
+                                .background(JellyfinTheme.accentGradient)
+                                .clipShape(Circle())
+                                .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                             }
-                            .padding(10)
-                            .background(JellyfinTheme.accentGradient)
-                            .clipShape(Circle())
-                            .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                         }
                     }
                     .padding(.horizontal, 16)
@@ -178,6 +187,11 @@ struct ContinueWatchingCard: View {
             }
             .scaleEffect(isHovered ? 1.02 : 1.0)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
+            .fullScreenCover(isPresented: $showingPlayer) {
+                NavigationView {
+                    VideoPlayerView(item: item)
+                }
+            }
         }
         .frame(maxWidth: .infinity)
     }
