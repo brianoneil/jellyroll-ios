@@ -3,6 +3,7 @@ import SwiftUI
 struct MovieDetailView: View {
     let item: MediaItem
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var themeManager = ThemeManager.shared
     @State private var showingPlayer = false
     @State private var showFullOverview = false
     
@@ -38,10 +39,10 @@ struct MovieDetailView: View {
     private var backgroundGradient: LinearGradient {
         LinearGradient(
             colors: [
-                Color(red: 0.059, green: 0.067, blue: 0.122),
-                Color(red: 0.059, green: 0.067, blue: 0.122).opacity(0.95),
-                Color(red: 0.435, green: 0.404, blue: 0.976).opacity(0.05),
-                Color(red: 0.059, green: 0.067, blue: 0.122)
+                JellyfinTheme.backgroundColor(for: themeManager.currentMode),
+                JellyfinTheme.backgroundColor(for: themeManager.currentMode).opacity(0.95),
+                JellyfinTheme.surfaceColor(for: themeManager.currentMode).opacity(0.05),
+                JellyfinTheme.backgroundColor(for: themeManager.currentMode)
             ],
             startPoint: .top,
             endPoint: .bottom
@@ -85,7 +86,7 @@ struct MovieDetailView: View {
                             .overlay {
                                 Image(systemName: "chevron.left")
                                     .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
                             }
                     }
                     .padding(16)
@@ -94,7 +95,7 @@ struct MovieDetailView: View {
                 
                 // Content
                 VStack(spacing: 24) {
-                    // Poster and Metadata Section (offset upward)
+                    // Poster and Metadata Section
                     HStack(spacing: 16) {
                         // Poster
                         VStack {
@@ -110,11 +111,11 @@ struct MovieDetailView: View {
                             
                             Spacer()
                         }
-                        .frame(height: 180) // This ensures consistent poster placement
+                        .frame(height: 180)
                         
                         // Title and metadata
                         VStack(alignment: .leading, spacing: 8) {
-                            Spacer() // Pushes content to bottom
+                            Spacer()
                             
                             if item.imageTags["Logo"] != nil {
                                 JellyfinImage(
@@ -130,7 +131,7 @@ struct MovieDetailView: View {
                             } else {
                                 Text(item.name)
                                     .font(.system(size: 24, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
                             }
                             
                             // Quick Info Row
@@ -143,28 +144,18 @@ struct MovieDetailView: View {
                                     Text("•")
                                     Text(runtime)
                                 }
-                                
-                                if let rating = item.communityRating {
-                                    Text("•")
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "star.fill")
-                                            .font(.system(size: 12))
-                                            .foregroundStyle(JellyfinTheme.accentGradient)
-                                        Text(String(format: "%.1f", rating))
-                                    }
-                                }
                             }
                             .font(.system(size: 15))
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
                             
                             // Rating Row (if exists)
                             if let officialRating = item.officialRating {
                                 Text(officialRating)
                                     .font(.system(size: 13))
-                                    .foregroundColor(.white.opacity(0.7))
+                                    .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 4)
-                                    .background(Color.white.opacity(0.1))
+                                    .background(JellyfinTheme.surfaceColor(for: themeManager.currentMode).opacity(0.1))
                                     .cornerRadius(6)
                             }
                             
@@ -194,18 +185,18 @@ struct MovieDetailView: View {
                                 }
                             }
                             .font(.system(size: 13))
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(JellyfinTheme.Text.tertiary(for: themeManager.currentMode))
                         }
                     }
                     .padding(.horizontal, 24)
                     .offset(y: -90)
-                    .padding(.bottom, -90) // Compensate for the offset
+                    .padding(.bottom, -90)
                     
                     // Featured Tagline (if only one exists)
                     if item.taglines.count == 1, let tagline = item.taglines.first {
                         Text(tagline)
                             .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(.white.opacity(0.9))
+                            .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
                             .italic()
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.horizontal, 24)
@@ -248,7 +239,7 @@ struct MovieDetailView: View {
                         if hasProgress {
                             HStack(spacing: 4) {
                                 ProgressView(value: progressPercentage)
-                                    .tint(Color(red: 0.435, green: 0.404, blue: 0.976))
+                                    .tint(JellyfinTheme.surfaceColor(for: themeManager.currentMode))
                             }
                         }
                     }
@@ -259,7 +250,7 @@ struct MovieDetailView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text(showFullOverview ? overview : (shortOverview ?? overview))
                                 .font(.system(size: 15))
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
                                 .lineSpacing(4)
                                 .lineLimit(showFullOverview ? nil : 10)
                             
@@ -283,16 +274,16 @@ struct MovieDetailView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Tags")
                                 .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
                             
                             FlowLayout(spacing: 6) {
                                 ForEach(item.taglines, id: \.self) { tag in
                                     Text(tag)
                                         .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(.white.opacity(0.6))
+                                        .foregroundColor(JellyfinTheme.Text.tertiary(for: themeManager.currentMode))
                                         .padding(.horizontal, 8)
                                         .padding(.vertical, 4)
-                                        .background(Color.white.opacity(0.06))
+                                        .background(JellyfinTheme.surfaceColor(for: themeManager.currentMode).opacity(0.06))
                                         .cornerRadius(12)
                                 }
                             }
@@ -306,6 +297,7 @@ struct MovieDetailView: View {
         .background(backgroundGradient)
         .ignoresSafeArea(edges: .top)
         .navigationBarHidden(true)
+        .preferredColorScheme(themeManager.currentMode == .dark ? .dark : .light)
         .fullScreenCover(isPresented: $showingPlayer) {
             NavigationView {
                 VideoPlayerView(item: item)

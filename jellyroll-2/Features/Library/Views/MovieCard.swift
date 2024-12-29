@@ -3,7 +3,7 @@ import SwiftUI
 struct MovieCard: View {
     let item: MediaItem
     let style: Style
-    let themeManager: ThemeManager
+    @ObservedObject var themeManager: ThemeManager
     @State private var isHovered = false
     @State private var showingPlayer = false
     @State private var showingDetail = false
@@ -37,7 +37,7 @@ struct MovieCard: View {
     init(item: MediaItem, style: Style = .list, themeManager: ThemeManager) {
         self.item = item
         self.style = style
-        self.themeManager = themeManager
+        self._themeManager = ObservedObject(wrappedValue: themeManager)
     }
     
     private var progressPercentage: Double {
@@ -77,12 +77,12 @@ struct MovieCard: View {
                         HStack(spacing: 4) {
                             Image(systemName: "play.fill")
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(JellyfinTheme.Text.primary(for: themeManager.currentMode))
                         }
                         .padding(10)
                         .background(JellyfinTheme.accentGradient)
                         .clipShape(Circle())
-                        .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+                        .shadow(color: JellyfinTheme.backgroundColor(for: themeManager.currentMode).opacity(0.2), radius: 2, x: 0, y: 1)
                     }
                     .padding([.trailing, .bottom], 12)
                 }
@@ -95,7 +95,7 @@ struct MovieCard: View {
                             ZStack(alignment: .leading) {
                                 // Background
                                 Rectangle()
-                                    .fill(Color.white.opacity(0.2))
+                                    .fill(JellyfinTheme.surfaceColor(for: themeManager.currentMode).opacity(0.2))
                                     .frame(height: 3)
                                 
                                 // Progress
@@ -109,7 +109,7 @@ struct MovieCard: View {
                     }
                     .background(
                         LinearGradient(
-                            colors: [.clear, .black.opacity(0.3)],
+                            colors: [.clear, JellyfinTheme.backgroundColor(for: themeManager.currentMode).opacity(0.3)],
                             startPoint: .top,
                             endPoint: .bottom
                         )
