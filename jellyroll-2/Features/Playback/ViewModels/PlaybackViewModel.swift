@@ -16,6 +16,9 @@ class PlaybackViewModel: ObservableObject {
     @Published var duration: Double = 0
     @Published var isPlaying = false
     
+    // Nonisolated storage for cleanup
+    private var cleanupStorage = CleanupStorage()
+    
     func play(item: MediaItem) async {
         isLoading = true
         errorMessage = nil
@@ -26,7 +29,9 @@ class PlaybackViewModel: ObservableObject {
             let playerItem = AVPlayerItem(url: url)
             
             if player == nil {
-                player = AVPlayer(playerItem: playerItem)
+                let newPlayer = AVPlayer(playerItem: playerItem)
+                player = newPlayer
+                cleanupStorage.player = newPlayer
             } else {
                 player?.replaceCurrentItem(with: playerItem)
             }
@@ -72,11 +77,12 @@ class PlaybackViewModel: ObservableObject {
         if let observer = timeObserver {
             player?.removeTimeObserver(observer)
             timeObserver = nil
+            cleanupStorage.timeObserver = nil
         }
         
         // Create new time observer
         let interval = CMTime(seconds: 0.5, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
-        timeObserver = player?.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
+        let observer = player?.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 self.currentTime = time.seconds
@@ -84,6 +90,8 @@ class PlaybackViewModel: ObservableObject {
                 await self.updateProgress()
             }
         }
+        timeObserver = observer
+        cleanupStorage.timeObserver = observer
     }
     
     private func updateProgress() async {
@@ -108,9 +116,11 @@ class PlaybackViewModel: ObservableObject {
         if let observer = timeObserver {
             player?.removeTimeObserver(observer)
             timeObserver = nil
+            cleanupStorage.timeObserver = nil
         }
         player?.pause()
         player = nil
+        cleanupStorage.player = nil
         currentItem = nil
         isPlaying = false
         currentTime = 0
@@ -118,8 +128,34 @@ class PlaybackViewModel: ObservableObject {
     }
     
     deinit {
-        Task { @MainActor in
-            await cleanup()
+        cleanupStorage.cleanup()
+    }
+}
+
+// Separate class to handle nonisolated cleanup
+private final class CleanupStorage {
+    private let queue = DispatchQueue(label: "com.jellyroll.playback.cleanup")
+    private var _player: AVPlayer?
+    private var _timeObserver: Any?
+    
+    var player: AVPlayer? {
+        get { queue.sync { _player } }
+        set { queue.sync { _player = newValue } }
+    }
+    
+    var timeObserver: Any? {
+        get { queue.sync { _timeObserver } }
+        set { queue.sync { _timeObserver = newValue } }
+    }
+    
+    func cleanup() {
+        queue.sync {
+            if let observer = _timeObserver {
+                _player?.removeTimeObserver(observer)
+            }
+            _player?.pause()
+            _player = nil
+            _timeObserver = nil
         }
     }
 } 

@@ -29,8 +29,7 @@ struct ContinueWatchingCard: View {
     
     private var progressText: String {
         if let remainingTime = item.remainingTime {
-            if let firstNumber = remainingTime.first(where: { $0.isNumber }),
-               let lastNumberIndex = remainingTime.lastIndex(where: { $0.isNumber }) {
+            if let lastNumberIndex = remainingTime.lastIndex(where: { $0.isNumber }) {
                 let index = remainingTime.index(after: lastNumberIndex)
                 let numbers = remainingTime[...lastNumberIndex]
                 let text = remainingTime[index...]

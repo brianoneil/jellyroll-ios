@@ -51,7 +51,7 @@ struct LoginView: View {
             }
         }
         .preferredColorScheme(.dark)
-        .onChange(of: viewModel.isAuthenticated) { isAuthenticated in
+        .onChange(of: viewModel.isAuthenticated) { _, isAuthenticated in
             if isAuthenticated {
                 dismiss()
             }

@@ -7,36 +7,55 @@ struct VideoPlayerView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-            
-            if viewModel.isLoading {
-                ProgressView()
-                    .scaleEffect(1.5)
-            } else if let error = viewModel.errorMessage {
-                VStack {
-                    Text(error)
-                        .foregroundColor(.red)
-                        .padding()
-                    
-                    Button("Close") {
-                        dismiss()
-                    }
-                    .buttonStyle(.bordered)
-                }
-            } else {
-                VideoPlayer(player: viewModel.player ?? AVPlayer())
-                    .ignoresSafeArea()
+        AVPlayerControllerRepresentable(player: viewModel.player ?? AVPlayer(), dismiss: dismiss)
+            .ignoresSafeArea()
+            .navigationBarHidden(true)
+            .task {
+                await viewModel.play(item: item)
             }
+            .onDisappear {
+                Task { @MainActor in
+                    await viewModel.cleanup()
+                }
+            }
+    }
+}
+
+struct AVPlayerControllerRepresentable: UIViewControllerRepresentable {
+    let player: AVPlayer
+    let dismiss: DismissAction
+    
+    func makeUIViewController(context: Context) -> AVPlayerViewController {
+        let controller = AVPlayerViewController()
+        controller.player = player
+        controller.delegate = context.coordinator
+        controller.allowsPictureInPicturePlayback = true
+        return controller
+    }
+    
+    func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
+        uiViewController.player = player
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(dismiss: dismiss)
+    }
+    
+    class Coordinator: NSObject, AVPlayerViewControllerDelegate {
+        let dismiss: DismissAction
+        
+        init(dismiss: DismissAction) {
+            self.dismiss = dismiss
+            super.init()
         }
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationTitle(item.name)
-        .task {
-            await viewModel.play(item: item)
+        
+        func playerViewController(_ playerViewController: AVPlayerViewController, willBeginFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator) {
+            // Handle full screen presentation if needed
         }
-        .onDisappear {
-            Task { @MainActor in
-                await viewModel.cleanup()
+        
+        func playerViewController(_ playerViewController: AVPlayerViewController, willEndFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator) {
+            coordinator.animate(alongsideTransition: nil) { _ in
+                self.dismiss()
             }
         }
     }
