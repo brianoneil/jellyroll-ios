@@ -3,13 +3,14 @@ import SwiftUI
 struct HomeView: View {
     @EnvironmentObject private var loginViewModel: LoginViewModel
     @StateObject private var libraryViewModel = LibraryViewModel()
+    @StateObject private var themeManager = ThemeManager.shared
     @State private var showingSettings = false
     @State private var selectedTab = 0
     
     var body: some View {
         NavigationView {
             ZStack(alignment: .top) {
-                JellyfinTheme.backgroundColor.ignoresSafeArea()
+                JellyfinTheme.backgroundColor(for: themeManager.currentMode).ignoresSafeArea()
                 
                 // Top Navigation Bar
                 HStack {
@@ -22,12 +23,12 @@ struct HomeView: View {
                     HStack(spacing: 20) {
                         Button(action: {}) {
                             Image(systemName: "airplayvideo")
-                                .foregroundStyle(.white)
+                                .foregroundStyle(JellyfinTheme.Text.primary(for: themeManager.currentMode))
                         }
                         
                         Button(action: {}) {
                             Image(systemName: "bell")
-                                .foregroundStyle(.white)
+                                .foregroundStyle(JellyfinTheme.Text.primary(for: themeManager.currentMode))
                                 .overlay(
                                     Circle()
                                         .fill(Color(red: 0.4, green: 0.5, blue: 0.9))
@@ -62,24 +63,24 @@ struct HomeView: View {
                     // Library Tabs
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 24) {
-                            TabButton(title: "Home", isSelected: selectedTab == 0) {
+                            TabButton(title: "Home", isSelected: selectedTab == 0, themeManager: themeManager) {
                                 selectedTab = 0
                             }
                             
                             if !libraryViewModel.movieLibraries.isEmpty {
-                                TabButton(title: "Movies", isSelected: selectedTab == 1) {
+                                TabButton(title: "Movies", isSelected: selectedTab == 1, themeManager: themeManager) {
                                     selectedTab = 1
                                 }
                             }
                             
                             if !libraryViewModel.tvShowLibraries.isEmpty {
-                                TabButton(title: "Series", isSelected: selectedTab == 2) {
+                                TabButton(title: "Series", isSelected: selectedTab == 2, themeManager: themeManager) {
                                     selectedTab = 2
                                 }
                             }
                             
                             if !libraryViewModel.musicLibraries.isEmpty {
-                                TabButton(title: "Music", isSelected: selectedTab == 3) {
+                                TabButton(title: "Music", isSelected: selectedTab == 3, themeManager: themeManager) {
                                     selectedTab = 3
                                 }
                             }
@@ -102,16 +103,16 @@ struct HomeView: View {
                         } else {
                             switch selectedTab {
                             case 0:
-                                HomeTabView(libraries: libraryViewModel.libraries, libraryViewModel: libraryViewModel)
+                                HomeTabView(libraries: libraryViewModel.libraries, libraryViewModel: libraryViewModel, themeManager: themeManager)
                                     .padding(.top, 16)
                             case 1:
-                                MoviesTabView(libraries: libraryViewModel.movieLibraries, libraryViewModel: libraryViewModel)
+                                MoviesTabView(libraries: libraryViewModel.movieLibraries, libraryViewModel: libraryViewModel, themeManager: themeManager)
                                     .padding(.top, 16)
                             case 2:
-                                SeriesTabView(libraries: libraryViewModel.tvShowLibraries, libraryViewModel: libraryViewModel)
+                                SeriesTabView(libraries: libraryViewModel.tvShowLibraries, libraryViewModel: libraryViewModel, themeManager: themeManager)
                                     .padding(.top, 16)
                             case 3:
-                                MusicTabView(libraries: libraryViewModel.musicLibraries, libraryViewModel: libraryViewModel)
+                                MusicTabView(libraries: libraryViewModel.musicLibraries, libraryViewModel: libraryViewModel, themeManager: themeManager)
                                     .padding(.top, 16)
                             default:
                                 EmptyView()
@@ -121,7 +122,7 @@ struct HomeView: View {
                 }
             }
             .navigationBarHidden(true)
-            .preferredColorScheme(.dark)
+            .preferredColorScheme(themeManager.currentMode == .dark ? .dark : .light)
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
             }
@@ -135,27 +136,19 @@ struct HomeView: View {
 struct TabButton: View {
     let title: String
     let isSelected: Bool
+    let themeManager: ThemeManager
     let action: () -> Void
-    
-    private let accentGradient = LinearGradient(
-        colors: [
-            Color(red: 0.6, green: 0.4, blue: 0.8), // Purple
-            Color(red: 0.4, green: 0.5, blue: 0.9)  // Blue
-        ],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
     
     var body: some View {
         Button(action: action) {
             VStack(spacing: 8) {
                 Text(title)
                     .fontWeight(isSelected ? .bold : .regular)
-                    .foregroundColor(isSelected ? .white : .gray)
+                    .foregroundColor(isSelected ? JellyfinTheme.Text.primary(for: themeManager.currentMode) : JellyfinTheme.Text.tertiary(for: themeManager.currentMode))
                 
                 if isSelected {
                     Rectangle()
-                        .fill(accentGradient)
+                        .fill(JellyfinTheme.accentGradient)
                         .frame(height: 2)
                 } else {
                     Rectangle()
@@ -170,6 +163,7 @@ struct TabButton: View {
 struct HomeTabView: View {
     let libraries: [LibraryItem]
     @ObservedObject var libraryViewModel: LibraryViewModel
+    let themeManager: ThemeManager
     
     var body: some View {
         ScrollView {
@@ -178,7 +172,7 @@ struct HomeTabView: View {
                     // Featured Continue Watching Section
                     TabView {
                         ForEach(libraryViewModel.continueWatching) { item in
-                            ContinueWatchingCard(item: item)
+                            ContinueWatchingCard(item: item, themeManager: themeManager)
                         }
                     }
                     .tabViewStyle(.page(indexDisplayMode: .always))
@@ -192,13 +186,13 @@ struct HomeTabView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Latest Additions")
                             .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(JellyfinTheme.Text.primary)
+                            .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
                             .padding(.horizontal)
                         
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 16) {
                                 ForEach(libraryViewModel.latestMedia) { item in
-                                    LatestMediaItem(item: item)
+                                    LatestMediaItem(item: item, themeManager: themeManager)
                                 }
                             }
                             .padding(.horizontal)
@@ -215,6 +209,7 @@ struct HomeTabView: View {
 struct MoviesTabView: View {
     let libraries: [LibraryItem]
     @ObservedObject var libraryViewModel: LibraryViewModel
+    let themeManager: ThemeManager
     
     // Grid layout with 2 columns
     private let columns = [
@@ -229,7 +224,7 @@ struct MoviesTabView: View {
                     if !libraryViewModel.getMovieItems(for: library.id).isEmpty {
                         LazyVGrid(columns: columns, spacing: 24) {
                             ForEach(libraryViewModel.getMovieItems(for: library.id)) { item in
-                                MovieCard(item: item, style: .grid)
+                                MovieCard(item: item, style: .grid, themeManager: themeManager)
                             }
                         }
                         .padding(.horizontal)
@@ -243,10 +238,11 @@ struct MoviesTabView: View {
 
 struct LatestMediaItem: View {
     let item: MediaItem
+    let themeManager: ThemeManager
     
     var body: some View {
         if item.type.lowercased() == "movie" {
-            MovieCard(item: item, style: .list)
+            MovieCard(item: item, style: .list, themeManager: themeManager)
         } else {
             VStack(alignment: .leading, spacing: 8) {
                 JellyfinImage(
@@ -259,15 +255,19 @@ struct LatestMediaItem: View {
                 
                 Text(item.name)
                     .fontWeight(.medium)
+                    .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
                     .lineLimit(1)
                 
                 if let year = item.yearText {
                     Text(year)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
                 }
             }
             .frame(width: 160)
+            .padding(8)
+            .background(JellyfinTheme.elevatedSurfaceColor(for: themeManager.currentMode))
+            .cornerRadius(12)
         }
     }
 }
@@ -275,6 +275,7 @@ struct LatestMediaItem: View {
 struct SeriesTabView: View {
     let libraries: [LibraryItem]
     @ObservedObject var libraryViewModel: LibraryViewModel
+    let themeManager: ThemeManager
     
     var body: some View {
         VStack(spacing: 24) {
@@ -283,7 +284,7 @@ struct SeriesTabView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 16) {
                             ForEach(libraryViewModel.getTVShowItems(for: library.id)) { item in
-                                SeriesItem(item: item)
+                                SeriesItem(item: item, themeManager: themeManager)
                             }
                         }
                         .padding(.horizontal)
@@ -298,6 +299,7 @@ struct SeriesTabView: View {
 struct MusicTabView: View {
     let libraries: [LibraryItem]
     @ObservedObject var libraryViewModel: LibraryViewModel
+    let themeManager: ThemeManager
     
     var body: some View {
         VStack(spacing: 24) {
@@ -307,11 +309,12 @@ struct MusicTabView: View {
                         Text(library.name)
                             .font(.title2)
                             .fontWeight(.bold)
+                            .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
                         
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 16) {
                                 ForEach(libraryViewModel.getMusicItems(for: library.id)) { item in
-                                    MusicItem(item: item)
+                                    MusicItem(item: item, themeManager: themeManager)
                                 }
                             }
                             .padding(.horizontal)
@@ -326,6 +329,7 @@ struct MusicTabView: View {
 
 struct SeriesItem: View {
     let item: MediaItem
+    let themeManager: ThemeManager
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -339,7 +343,7 @@ struct SeriesItem: View {
             
             Text(item.name)
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(JellyfinTheme.Text.primary)
+                .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
                 .lineLimit(1)
             
             HStack {
@@ -352,16 +356,17 @@ struct SeriesItem: View {
                 }
             }
             .font(.caption)
-            .foregroundColor(JellyfinTheme.Text.secondary)
+            .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
         }
         .padding(8)
-        .background(JellyfinTheme.elevatedSurfaceColor)
+        .background(JellyfinTheme.elevatedSurfaceColor(for: themeManager.currentMode))
         .cornerRadius(12)
     }
 }
 
 struct MusicItem: View {
     let item: MediaItem
+    let themeManager: ThemeManager
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -375,18 +380,18 @@ struct MusicItem: View {
             
             Text(item.name)
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(JellyfinTheme.Text.primary)
+                .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
                 .lineLimit(1)
             
             if let artist = item.artistText, let year = item.yearText {
                 Text("\(artist) • \(year)")
                     .font(.caption)
-                    .foregroundColor(JellyfinTheme.Text.secondary)
+                    .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
                     .lineLimit(1)
             }
         }
         .padding(8)
-        .background(JellyfinTheme.elevatedSurfaceColor)
+        .background(JellyfinTheme.elevatedSurfaceColor(for: themeManager.currentMode))
         .cornerRadius(12)
     }
 } 

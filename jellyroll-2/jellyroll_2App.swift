@@ -10,6 +10,7 @@ import SwiftUI
 @main
 struct jellyroll_2App: App {
     @StateObject private var loginViewModel = LoginViewModel()
+    @StateObject private var themeManager = ThemeManager.shared
 
     var body: some Scene {
         WindowGroup {
@@ -25,6 +26,7 @@ struct jellyroll_2App: App {
                     }
                 }
                 .environmentObject(loginViewModel)
+                .preferredColorScheme(themeManager.currentMode == .dark ? .dark : .light)
             }
         }
     }

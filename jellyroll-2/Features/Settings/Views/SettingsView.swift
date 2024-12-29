@@ -3,23 +3,12 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var loginViewModel: LoginViewModel
     @Environment(\.dismiss) private var dismiss
-    
-    // Custom theme colors
-    private let backgroundColor = Color(red: 0.07, green: 0.09, blue: 0.18) // Slightly lighter navy
-    private let sectionBackgroundColor = Color(red: 0.1, green: 0.12, blue: 0.22) // Even lighter navy for sections
-    private let accentGradient = LinearGradient(
-        colors: [
-            Color(red: 0.6, green: 0.4, blue: 0.8), // Purple
-            Color(red: 0.4, green: 0.5, blue: 0.9)  // Blue
-        ],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
+    @StateObject private var themeManager = ThemeManager.shared
     
     var body: some View {
         NavigationView {
             ZStack {
-                backgroundColor.ignoresSafeArea()
+                JellyfinTheme.backgroundColor(for: themeManager.currentMode).ignoresSafeArea()
                 
                 List {
                     // User Profile Section
@@ -27,7 +16,7 @@ struct SettingsView: View {
                         HStack(spacing: 16) {
                             // Avatar
                             Circle()
-                                .fill(accentGradient)
+                                .fill(JellyfinTheme.accentGradient)
                                 .frame(width: 60, height: 60)
                                 .overlay(
                                     Text(String(loginViewModel.user?.name.prefix(1).uppercased() ?? "?"))
@@ -40,60 +29,75 @@ struct SettingsView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(loginViewModel.user?.name ?? "User")
                                     .font(.headline)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
                                 if let user = loginViewModel.user {
                                     Text(user.policy.isAdministrator ? "Administrator" : "User")
                                         .font(.subheadline)
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
                                 }
                             }
                         }
                         .padding(.vertical, 8)
-                        .listRowBackground(sectionBackgroundColor)
+                        .listRowBackground(JellyfinTheme.elevatedSurfaceColor(for: themeManager.currentMode))
                     } header: {
                         Text("Profile")
-                            .foregroundColor(.gray)
+                            .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
+                    }
+                    
+                    // Appearance Section
+                    Section {
+                        Picker("Theme", selection: $themeManager.currentMode) {
+                            Text("Light")
+                                .tag(ThemeMode.light)
+                            Text("Dark")
+                                .tag(ThemeMode.dark)
+                        }
+                        .pickerStyle(.segmented)
+                        .listRowBackground(JellyfinTheme.elevatedSurfaceColor(for: themeManager.currentMode))
+                    } header: {
+                        Text("Appearance")
+                            .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
                     }
                     
                     // Server Information
                     Section {
                         HStack {
                             Label("Server", systemImage: "server.rack")
-                                .foregroundColor(.white)
+                                .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
                             Spacer()
                             Text(loginViewModel.serverURL)
-                                .foregroundColor(.gray)
+                                .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
                         }
-                        .listRowBackground(sectionBackgroundColor)
+                        .listRowBackground(JellyfinTheme.elevatedSurfaceColor(for: themeManager.currentMode))
                         
                         if let user = loginViewModel.user {
                             HStack {
                                 Label("Last Login", systemImage: "clock")
-                                    .foregroundColor(.white)
+                                    .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
                                 Spacer()
                                 Text(user.lastLoginDate.formatted(.relative(presentation: .named)))
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
                             }
-                            .listRowBackground(sectionBackgroundColor)
+                            .listRowBackground(JellyfinTheme.elevatedSurfaceColor(for: themeManager.currentMode))
                         }
                     } header: {
                         Text("Connection")
-                            .foregroundColor(.gray)
+                            .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
                     }
                     
                     // App Information
                     Section {
                         HStack {
                             Label("Version", systemImage: "info.circle")
-                                .foregroundColor(.white)
+                                .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
                             Spacer()
                             Text("1.0.0")
-                                .foregroundColor(.gray)
+                                .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
                         }
-                        .listRowBackground(sectionBackgroundColor)
+                        .listRowBackground(JellyfinTheme.elevatedSurfaceColor(for: themeManager.currentMode))
                     } header: {
                         Text("About")
-                            .foregroundColor(.gray)
+                            .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
                     }
                     
                     // Logout Button
@@ -108,13 +112,13 @@ struct SettingsView: View {
                                 Spacer()
                             }
                         }
-                        .listRowBackground(sectionBackgroundColor)
+                        .listRowBackground(JellyfinTheme.elevatedSurfaceColor(for: themeManager.currentMode))
                     }
                 }
                 .scrollContentBackground(.hidden)
                 .navigationTitle("Settings")
             }
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(themeManager.currentMode == .dark ? .dark : .light)
     }
 } 

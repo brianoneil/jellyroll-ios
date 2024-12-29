@@ -3,12 +3,13 @@ import SwiftUI
 struct LoginView: View {
     @EnvironmentObject private var viewModel: LoginViewModel
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var themeManager = ThemeManager.shared
     
     var body: some View {
         NavigationView {
             ScrollView {
                 ZStack {
-                    JellyfinTheme.backgroundColor
+                    JellyfinTheme.backgroundColor(for: themeManager.currentMode)
                         .ignoresSafeArea()
                     
                     VStack(spacing: 20) {
@@ -37,7 +38,7 @@ struct LoginView: View {
                         Button("Server") {
                             viewModel.showServerConfiguration()
                         }
-                        .foregroundColor(JellyfinTheme.Text.primary)
+                        .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
                     }
                 }
             }
@@ -50,7 +51,7 @@ struct LoginView: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(themeManager.currentMode == .dark ? .dark : .light)
         .onChange(of: viewModel.isAuthenticated) { _, isAuthenticated in
             if isAuthenticated {
                 dismiss()
@@ -63,7 +64,7 @@ struct LoginView: View {
             Text("Connect to Server")
                 .font(.title2)
                 .fontWeight(.bold)
-                .foregroundColor(JellyfinTheme.Text.primary)
+                .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
             
             VStack(spacing: 16) {
                 TextField("Server URL", text: $viewModel.serverURL)
@@ -71,7 +72,7 @@ struct LoginView: View {
                     .textInputAutocapitalization(.never)
                     .keyboardType(.URL)
                     .autocorrectionDisabled()
-                    .background(JellyfinTheme.surfaceColor)
+                    .background(JellyfinTheme.surfaceColor(for: themeManager.currentMode))
                 
                 Button {
                     Task {
@@ -97,11 +98,11 @@ struct LoginView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Recent Servers")
                         .font(.headline)
-                        .foregroundColor(JellyfinTheme.Text.secondary)
+                        .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
                         .padding(.top, 8)
                     
                     Divider()
-                        .background(JellyfinTheme.Text.tertiary)
+                        .background(JellyfinTheme.Text.tertiary(for: themeManager.currentMode))
                     
                     ForEach(viewModel.serverHistory, id: \.url) { history in
                         Button(action: {
@@ -112,15 +113,15 @@ struct LoginView: View {
                                     .foregroundStyle(JellyfinTheme.accentGradient)
                                 VStack(alignment: .leading) {
                                     Text(history.url)
-                                        .foregroundColor(JellyfinTheme.Text.primary)
+                                        .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
                                         .lineLimit(1)
                                     Text(history.lastUsed.formatted(.relative(presentation: .named)))
-                                        .foregroundColor(JellyfinTheme.Text.secondary)
+                                        .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
                                         .font(.caption)
                                 }
                                 Spacer()
                                 Image(systemName: "chevron.right")
-                                    .foregroundColor(JellyfinTheme.Text.secondary)
+                                    .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
                                     .font(.caption)
                             }
                         }
@@ -128,12 +129,12 @@ struct LoginView: View {
                         
                         if history.url != viewModel.serverHistory.last?.url {
                             Divider()
-                                .background(JellyfinTheme.Text.tertiary)
+                                .background(JellyfinTheme.Text.tertiary(for: themeManager.currentMode))
                         }
                     }
                 }
                 .padding()
-                .background(JellyfinTheme.elevatedSurfaceColor)
+                .background(JellyfinTheme.elevatedSurfaceColor(for: themeManager.currentMode))
                 .cornerRadius(10)
             }
         }
@@ -144,37 +145,37 @@ struct LoginView: View {
             Text("Sign In")
                 .font(.title2)
                 .fontWeight(.bold)
-                .foregroundColor(JellyfinTheme.Text.primary)
+                .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
             
             VStack(spacing: 15) {
                 TextField("Username", text: $viewModel.username)
                     .textFieldStyle(.roundedBorder)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .background(JellyfinTheme.surfaceColor)
+                    .background(JellyfinTheme.surfaceColor(for: themeManager.currentMode))
                 
                 SecureField("Password", text: $viewModel.password)
                     .textFieldStyle(.roundedBorder)
-                    .background(JellyfinTheme.surfaceColor)
+                    .background(JellyfinTheme.surfaceColor(for: themeManager.currentMode))
+                
+                Button {
+                    Task {
+                        await viewModel.login()
+                    }
+                } label: {
+                    Text("Sign In")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(JellyfinTheme.accentGradient)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
             }
             
             if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
                     .foregroundColor(.red)
                     .font(.caption)
-            }
-            
-            Button {
-                Task {
-                    await viewModel.login()
-                }
-            } label: {
-                Text("Sign In")
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(JellyfinTheme.accentGradient)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
             }
         }
     }

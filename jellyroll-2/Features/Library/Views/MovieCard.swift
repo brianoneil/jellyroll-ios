@@ -3,6 +3,7 @@ import SwiftUI
 struct MovieCard: View {
     let item: MediaItem
     let style: Style
+    let themeManager: ThemeManager
     @State private var isHovered = false
     @State private var showingPlayer = false
     @State private var showingDetail = false
@@ -33,9 +34,10 @@ struct MovieCard: View {
         }
     }
     
-    init(item: MediaItem, style: Style = .list) {
+    init(item: MediaItem, style: Style = .list, themeManager: ThemeManager) {
         self.item = item
         self.style = style
+        self.themeManager = themeManager
     }
     
     private var progressPercentage: Double {
@@ -124,7 +126,7 @@ struct MovieCard: View {
                 // Movie Title
                 Text(item.name)
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(JellyfinTheme.Text.primary)
+                    .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
                     .lineLimit(style.titleLineLimit)
                 
                 // Movie Metadata
@@ -132,35 +134,34 @@ struct MovieCard: View {
                     if let year = item.yearText {
                         Text(year)
                             .font(.system(size: 12))
-                            .foregroundColor(JellyfinTheme.Text.secondary)
+                            .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
                     }
                     if let genre = item.genreText {
                         Text("•")
                             .font(.system(size: 12))
-                            .foregroundColor(JellyfinTheme.Text.tertiary)
+                            .foregroundColor(JellyfinTheme.Text.tertiary(for: themeManager.currentMode))
                         Text(genre)
                             .font(.system(size: 12))
-                            .foregroundColor(JellyfinTheme.Text.secondary)
+                            .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
                     }
                     
                     if let rating = item.communityRating {
                         Text("•")
                             .font(.system(size: 12))
-                            .foregroundColor(JellyfinTheme.Text.tertiary)
+                            .foregroundColor(JellyfinTheme.Text.tertiary(for: themeManager.currentMode))
                         Image(systemName: "star.fill")
                             .font(.system(size: 10))
                             .foregroundStyle(JellyfinTheme.accentGradient)
                         Text(String(format: "%.1f", rating))
                             .font(.system(size: 12))
-                            .foregroundColor(JellyfinTheme.Text.secondary)
+                            .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
                     }
                 }
-                .foregroundColor(JellyfinTheme.Text.secondary)
             }
             .padding(.horizontal, 4)
         }
         .padding(8)
-        .background(JellyfinTheme.elevatedSurfaceColor)
+        .background(JellyfinTheme.elevatedSurfaceColor(for: themeManager.currentMode))
         .cornerRadius(12)
         .scaleEffect(isHovered ? 1.02 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
