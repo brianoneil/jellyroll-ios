@@ -16,7 +16,7 @@ struct HomeView: View {
                 HStack {
                     Image(systemName: "play.circle.fill")
                         .font(.title)
-                        .foregroundStyle(JellyfinTheme.accentGradient)
+                        .foregroundStyle(themeManager.accentGradient)
                     
                     Spacer()
                     
@@ -31,7 +31,7 @@ struct HomeView: View {
                                 .foregroundStyle(JellyfinTheme.Text.primary(for: themeManager.currentMode))
                                 .overlay(
                                     Circle()
-                                        .fill(Color(red: 0.4, green: 0.5, blue: 0.9))
+                                        .fill(themeManager.accentGradient)
                                         .frame(width: 8, height: 8)
                                         .offset(x: 6, y: -6),
                                         alignment: .topTrailing
@@ -42,7 +42,7 @@ struct HomeView: View {
                             showingSettings = true
                         }) {
                             Circle()
-                                .fill(JellyfinTheme.accentGradient)
+                                .fill(themeManager.accentGradient)
                                 .frame(width: 28, height: 28)
                                 .overlay(
                                     Text(String(loginViewModel.user?.name.prefix(1).uppercased() ?? "?"))
@@ -148,7 +148,7 @@ struct TabButton: View {
                 
                 if isSelected {
                     Rectangle()
-                        .fill(JellyfinTheme.accentGradient)
+                        .fill(themeManager.accentGradient)
                         .frame(height: 2)
                 } else {
                     Rectangle()
@@ -260,13 +260,12 @@ struct LatestMediaItem: View {
                 
                 if let year = item.yearText {
                     Text(year)
-                        .font(.caption)
+                        .font(.system(size: 12))
                         .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
                 }
             }
-            .frame(width: 160)
             .padding(8)
-            .background(JellyfinTheme.elevatedSurfaceColor(for: themeManager.currentMode))
+            .background(JellyfinTheme.cardGradient(for: themeManager.currentMode))
             .cornerRadius(12)
         }
     }

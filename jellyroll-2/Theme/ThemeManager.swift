@@ -14,6 +14,10 @@ class ThemeManager: ObservableObject {
         }
     }
     
+    var accentGradient: LinearGradient {
+        currentMode == .light ? JellyfinTheme.lightAccentGradient : JellyfinTheme.darkAccentGradient
+    }
+    
     private init() {
         // Load saved theme preference
         currentMode = UserDefaults.standard.bool(forKey: "isDarkMode") ? .dark : .light

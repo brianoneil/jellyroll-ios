@@ -231,7 +231,7 @@ struct MovieDetailView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                            .background(JellyfinTheme.accentGradient)
+                            .background(themeManager.accentGradient)
                             .foregroundColor(.white)
                             .cornerRadius(12)
                         }
@@ -262,7 +262,7 @@ struct MovieDetailView: View {
                                 }) {
                                     Text(showFullOverview ? "Show less" : "More")
                                         .font(.system(size: 15, weight: .medium))
-                                        .foregroundStyle(JellyfinTheme.accentGradient)
+                                        .foregroundStyle(themeManager.accentGradient)
                                 }
                             }
                         }

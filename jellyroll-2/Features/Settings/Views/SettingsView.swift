@@ -16,8 +16,8 @@ struct SettingsView: View {
                         HStack(spacing: 16) {
                             // Avatar
                             Circle()
-                                .fill(JellyfinTheme.accentGradient)
-                                .frame(width: 60, height: 60)
+                                .fill(themeManager.accentGradient)
+                                .frame(width: 28, height: 28)
                                 .overlay(
                                     Text(String(loginViewModel.user?.name.prefix(1).uppercased() ?? "?"))
                                         .font(.title2)

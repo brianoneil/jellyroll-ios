@@ -18,7 +18,7 @@ struct LoginView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 100, height: 100)
-                            .foregroundStyle(JellyfinTheme.accentGradient)
+                            .foregroundStyle(themeManager.accentGradient)
                             .padding(.bottom, 20)
                         
                         if viewModel.showServerConfig {
@@ -82,7 +82,7 @@ struct LoginView: View {
                     Text("Connect")
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(JellyfinTheme.accentGradient)
+                        .background(themeManager.accentGradient)
                         .foregroundColor(.white)
                         .cornerRadius(10)
                 }
@@ -110,7 +110,7 @@ struct LoginView: View {
                         }) {
                             HStack {
                                 Image(systemName: "server.rack")
-                                    .foregroundStyle(JellyfinTheme.accentGradient)
+                                    .foregroundStyle(themeManager.accentGradient)
                                 VStack(alignment: .leading) {
                                     Text(history.url)
                                         .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
@@ -166,7 +166,7 @@ struct LoginView: View {
                     Text("Sign In")
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(JellyfinTheme.accentGradient)
+                        .background(themeManager.accentGradient)
                         .foregroundColor(.white)
                         .cornerRadius(10)
                 }

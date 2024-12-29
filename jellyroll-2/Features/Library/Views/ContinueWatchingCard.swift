@@ -68,7 +68,7 @@ struct ContinueWatchingCard: View {
                             .overlay(
                                 Image(systemName: "play.fill")
                                     .font(.system(size: 30))
-                                    .foregroundStyle(JellyfinTheme.accentGradient)
+                                    .foregroundStyle(themeManager.accentGradient)
                             )
                     }
                     .transition(.scale.combined(with: .opacity))
@@ -119,7 +119,7 @@ struct ContinueWatchingCard: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "clock.fill")
                                     .font(.system(size: 10))
-                                    .foregroundStyle(JellyfinTheme.accentGradient)
+                                    .foregroundStyle(themeManager.accentGradient)
                                 Text(progressText)
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
@@ -141,7 +141,7 @@ struct ContinueWatchingCard: View {
                                         .foregroundStyle(.white)
                                 }
                                 .padding(10)
-                                .background(JellyfinTheme.accentGradient)
+                                .background(themeManager.accentGradient)
                                 .clipShape(Circle())
                                 .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                             }
@@ -160,7 +160,7 @@ struct ContinueWatchingCard: View {
                             
                             // Progress
                             Rectangle()
-                                .fill(JellyfinTheme.accentGradient)
+                                .fill(themeManager.accentGradient)
                                 .frame(width: max(0, min(metrics.size.width * progressPercentage, metrics.size.width)), height: 4)
                         }
                     }

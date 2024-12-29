@@ -77,12 +77,12 @@ struct MovieCard: View {
                         HStack(spacing: 4) {
                             Image(systemName: "play.fill")
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(JellyfinTheme.Text.primary(for: themeManager.currentMode))
+                                .foregroundStyle(.white)
                         }
                         .padding(10)
-                        .background(JellyfinTheme.accentGradient)
+                        .background(themeManager.currentMode == .light ? JellyfinTheme.lightAccentGradient : JellyfinTheme.darkAccentGradient)
                         .clipShape(Circle())
-                        .shadow(color: JellyfinTheme.backgroundColor(for: themeManager.currentMode).opacity(0.2), radius: 2, x: 0, y: 1)
+                        .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                     }
                     .padding([.trailing, .bottom], 12)
                 }
@@ -100,7 +100,7 @@ struct MovieCard: View {
                                 
                                 // Progress
                                 Rectangle()
-                                    .fill(JellyfinTheme.accentGradient)
+                                    .fill(themeManager.accentGradient)
                                     .frame(width: max(0, min(metrics.size.width * progressPercentage, metrics.size.width)), height: 3)
                             }
                         }
@@ -151,7 +151,7 @@ struct MovieCard: View {
                             .foregroundColor(JellyfinTheme.Text.tertiary(for: themeManager.currentMode))
                         Image(systemName: "star.fill")
                             .font(.system(size: 10))
-                            .foregroundStyle(JellyfinTheme.accentGradient)
+                            .foregroundStyle(themeManager.currentMode == .light ? JellyfinTheme.lightAccentGradient : JellyfinTheme.darkAccentGradient)
                         Text(String(format: "%.1f", rating))
                             .font(.system(size: 12))
                             .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
@@ -161,7 +161,7 @@ struct MovieCard: View {
             .padding(.horizontal, 4)
         }
         .padding(8)
-        .background(JellyfinTheme.elevatedSurfaceColor(for: themeManager.currentMode))
+        .background(JellyfinTheme.cardGradient(for: themeManager.currentMode))
         .cornerRadius(12)
         .scaleEffect(isHovered ? 1.02 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)

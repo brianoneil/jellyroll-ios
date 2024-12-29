@@ -1,12 +1,30 @@
 import SwiftUI
 
 enum JellyfinTheme {
+    static let lightAccentGradient = LinearGradient(
+        colors: [
+            Color(red: 0.60, green: 0.95, blue: 0.75), // More saturated mint
+            Color(red: 0.45, green: 0.75, blue: 0.98)  // More saturated blue
+        ],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+    
+    static let darkAccentGradient = LinearGradient(
+        colors: [
+            Color(red: 0.53, green: 0.35, blue: 0.83), // Jellyfin purple
+            Color(red: 0.35, green: 0.53, blue: 0.93)  // Jellyfin blue
+        ],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+    
     static func backgroundColor(for mode: ThemeMode) -> Color {
         switch mode {
         case .dark:
             return Color(red: 0.05, green: 0.07, blue: 0.15) // Dark navy
         case .light:
-            return Color(red: 0.95, green: 0.95, blue: 0.97) // Light gray
+            return Color(red: 0.92, green: 0.97, blue: 0.95) // Soft mint/seafoam
         }
     }
     
@@ -15,7 +33,7 @@ enum JellyfinTheme {
         case .dark:
             return Color(red: 0.07, green: 0.09, blue: 0.18) // Slightly lighter navy
         case .light:
-            return Color.white
+            return Color(red: 0.96, green: 0.98, blue: 0.99) // Very light blue-white
         }
     }
     
@@ -24,14 +42,14 @@ enum JellyfinTheme {
         case .dark:
             return Color(red: 0.1, green: 0.12, blue: 0.22) // Even lighter navy
         case .light:
-            return Color(red: 0.98, green: 0.98, blue: 0.98) // Very light gray
+            return Color.white.opacity(0.9) // Translucent white
         }
     }
     
-    static let accentGradient = LinearGradient(
+    static let backgroundGradient = LinearGradient(
         colors: [
-            Color(red: 0.6, green: 0.4, blue: 0.8), // Purple
-            Color(red: 0.4, green: 0.5, blue: 0.9)  // Blue
+            Color(red: 0.92, green: 0.97, blue: 0.95), // Soft mint/seafoam
+            Color(red: 0.90, green: 0.95, blue: 0.99)  // Soft light blue
         ],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
@@ -47,7 +65,10 @@ enum JellyfinTheme {
             )
         case .light:
             return LinearGradient(
-                colors: [.black, Color(white: 0.2)],
+                colors: [
+                    Color(red: 0.2, green: 0.2, blue: 0.3),
+                    Color(red: 0.3, green: 0.3, blue: 0.4)
+                ],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -59,8 +80,8 @@ enum JellyfinTheme {
             .clear,
             .clear,
             .clear,
-            .black.opacity(0.5),
-            .black.opacity(0.8)
+            .black.opacity(0.3),
+            .black.opacity(0.6)
         ],
         startPoint: .top,
         endPoint: .bottom
@@ -72,7 +93,7 @@ enum JellyfinTheme {
             case .dark:
                 return .white
             case .light:
-                return .black
+                return Color(red: 0.2, green: 0.2, blue: 0.3) // Dark blue-gray
             }
         }
         
@@ -81,7 +102,7 @@ enum JellyfinTheme {
             case .dark:
                 return .white.opacity(0.9)
             case .light:
-                return .black.opacity(0.7)
+                return Color(red: 0.3, green: 0.3, blue: 0.4).opacity(0.8) // Lighter blue-gray
             }
         }
         
@@ -90,7 +111,7 @@ enum JellyfinTheme {
             case .dark:
                 return .white.opacity(0.6)
             case .light:
-                return .black.opacity(0.5)
+                return Color(red: 0.4, green: 0.4, blue: 0.5).opacity(0.6) // Even lighter blue-gray
             }
         }
         
@@ -99,8 +120,24 @@ enum JellyfinTheme {
             case .dark:
                 return .white.opacity(0.6)
             case .light:
-                return .black.opacity(0.2)
+                return Color(red: 0.4, green: 0.4, blue: 0.5).opacity(0.2) // Very light blue-gray
             }
+        }
+    }
+    
+    static func cardGradient(for mode: ThemeMode) -> LinearGradient {
+        switch mode {
+        case .light:
+            return backgroundGradient
+        case .dark:
+            return LinearGradient(
+                colors: [
+                    elevatedSurfaceColor(for: mode),
+                    elevatedSurfaceColor(for: mode).opacity(0.95)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         }
     }
 } 
