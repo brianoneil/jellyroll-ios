@@ -5,6 +5,7 @@ struct MovieCard: View {
     let style: Style
     @State private var isHovered = false
     @State private var showingPlayer = false
+    @State private var showingDetail = false
     
     enum Style {
         case grid
@@ -115,6 +116,9 @@ struct MovieCard: View {
             }
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .contentShape(Rectangle())
+            .onTapGesture {
+                showingDetail = true
+            }
             
             VStack(alignment: .leading, spacing: 4) {
                 // Movie Title
@@ -163,6 +167,11 @@ struct MovieCard: View {
         .fullScreenCover(isPresented: $showingPlayer) {
             NavigationView {
                 VideoPlayerView(item: item)
+            }
+        }
+        .sheet(isPresented: $showingDetail) {
+            NavigationView {
+                MovieDetailView(item: item)
             }
         }
     }
