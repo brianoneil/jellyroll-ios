@@ -34,7 +34,8 @@ enum JellyfinTheme {
     
     enum Text {
         static let primary = Color.white
-        static let secondary = Color.gray
-        static let tertiary = Color(white: 0.6)
+        static let secondary = Color.white.opacity(0.9)
+        static let tertiary = Color.white.opacity(0.6)
+        static let separator = Color.white.opacity(0.6)
     }
 } 

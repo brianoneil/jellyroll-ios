@@ -227,19 +227,12 @@ struct MoviesTabView: View {
             VStack(spacing: 24) {
                 ForEach(libraries) { library in
                     if !libraryViewModel.getMovieItems(for: library.id).isEmpty {
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text(library.name)
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .padding(.horizontal)
-                            
-                            LazyVGrid(columns: columns, spacing: 24) {
-                                ForEach(libraryViewModel.getMovieItems(for: library.id)) { item in
-                                    MovieCard(item: item, style: .grid)
-                                }
+                        LazyVGrid(columns: columns, spacing: 24) {
+                            ForEach(libraryViewModel.getMovieItems(for: library.id)) { item in
+                                MovieCard(item: item, style: .grid)
                             }
-                            .padding(.horizontal)
                         }
+                        .padding(.horizontal)
                     }
                 }
             }
@@ -287,19 +280,13 @@ struct SeriesTabView: View {
         VStack(spacing: 24) {
             ForEach(libraries) { library in
                 if !libraryViewModel.getTVShowItems(for: library.id).isEmpty {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text(library.name)
-                            .font(.title2)
-                            .fontWeight(.bold)
-                        
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 16) {
-                                ForEach(libraryViewModel.getTVShowItems(for: library.id)) { item in
-                                    SeriesItem(item: item)
-                                }
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 16) {
+                            ForEach(libraryViewModel.getTVShowItems(for: library.id)) { item in
+                                SeriesItem(item: item)
                             }
-                            .padding(.horizontal)
                         }
+                        .padding(.horizontal)
                     }
                 }
             }

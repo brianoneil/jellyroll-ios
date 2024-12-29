@@ -81,7 +81,7 @@ struct ContinueWatchingCard: View {
                             .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
                         
                         // Metadata row
-                        HStack(spacing: 8) {
+                        HStack(spacing: 4) {
                             // Episode info for TV shows
                             if let episodeInfo = formatEpisodeInfo() {
                                 Text(episodeInfo)
@@ -98,6 +98,9 @@ struct ContinueWatchingCard: View {
                             
                             // Genre
                             if let genre = item.genreText {
+                                Text("•")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.white.opacity(0.6))
                                 Text(genre)
                                     .font(.system(size: 12))
                                     .foregroundColor(.white.opacity(0.9))
