@@ -3,7 +3,6 @@ import SwiftUI
 struct MovieDetailView: View {
     let item: MediaItem
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.deviceOrientation) private var orientation
     @EnvironmentObject private var themeManager: ThemeManager
     @State private var showingPlayer = false
     @State private var showFullOverview = false
@@ -50,65 +49,74 @@ struct MovieDetailView: View {
         )
     }
     
-    private var heroHeight: CGFloat {
-        orientation == .portrait ? 260 : 200
-    }
-    
     var body: some View {
-        ZStack(alignment: .top) {
-            // Full screen hero image
-            JellyfinImage(
-                itemId: item.id,
-                imageType: .backdrop,
-                aspectRatio: 16/9,
-                cornerRadius: 0,
-                fallbackIcon: "film"
-            )
-            .frame(maxWidth: .infinity)
-            .frame(maxHeight: .infinity)
-            .scaledToFill()
-            .clipped()
-            .overlay {
-                // Gradient overlay for readability
-                LinearGradient(
-                    colors: [
-                        .clear,
-                        themeManager.currentTheme.backgroundColor.opacity(0.4),
-                        themeManager.currentTheme.backgroundColor.opacity(0.7),
-                        themeManager.currentTheme.backgroundColor.opacity(0.9)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            }
-            
-            ScrollView {
-                VStack(spacing: 0) {
-                    // Top navigation bar
-                    HStack {
-                        Button(action: { dismiss() }) {
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                                .frame(width: 32, height: 32)
-                                .overlay {
-                                    Image(systemName: "chevron.left")
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(themeManager.currentTheme.primaryTextColor)
-                                }
-                        }
-                        
-                        Spacer()
+        ScrollView {
+            VStack(spacing: 0) {
+                // Hero Section
+                ZStack(alignment: .top) {
+                    // Backdrop
+                    JellyfinImage(
+                        itemId: item.id,
+                        imageType: .backdrop,
+                        aspectRatio: 16/9,
+                        cornerRadius: 0,
+                        fallbackIcon: "film"
+                    )
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 260)
+                    .overlay(alignment: .bottom) {
+                        // Bottom gradient for text readability
+                        LinearGradient(
+                            colors: [
+                                .clear,
+                                .black.opacity(0.3),
+                                .black.opacity(0.7)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: 160)
                     }
-                    .padding(.horizontal)
-                    .padding(.top, 48)
                     
-                    Spacer()
-                    .frame(height: orientation == .portrait ? 200 : 100)
-                    
-                    // Content
-                    VStack(alignment: .leading, spacing: orientation == .portrait ? 24 : 16) {
+                    // Back button
+                    Button(action: { dismiss() }) {
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .frame(width: 32, height: 32)
+                            .overlay {
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                            }
+                    }
+                    .padding(16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                
+                // Content
+                VStack(spacing: 24) {
+                    // Poster and Metadata Section
+                    HStack(spacing: 16) {
+                        // Poster
+                        VStack {
+                            JellyfinImage(
+                                itemId: item.id,
+                                imageType: .primary,
+                                aspectRatio: 2/3,
+                                cornerRadius: 12,
+                                fallbackIcon: "film"
+                            )
+                            .frame(width: 120)
+                            .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 4)
+                            
+                            Spacer()
+                        }
+                        .frame(height: 180)
+                        
                         // Title and metadata
-                        VStack(alignment: .leading, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Spacer()
+                            
                             if item.imageTags["Logo"] != nil {
                                 JellyfinImage(
                                     itemId: item.id,
@@ -118,15 +126,15 @@ struct MovieDetailView: View {
                                     fallbackIcon: "film"
                                 )
                                 .frame(height: 40)
-                                .frame(maxWidth: 300, alignment: .leading)
+                                .frame(maxWidth: 200)
                                 .scaledToFit()
                             } else {
                                 Text(item.name)
-                                    .font(.system(size: 34, weight: .bold))
+                                    .font(.system(size: 24, weight: .bold))
                                     .foregroundColor(themeManager.currentTheme.primaryTextColor)
                             }
                             
-                            // Metadata row
+                            // Quick Info Row
                             HStack(spacing: 12) {
                                 if let year = item.yearText {
                                     Text(year)
@@ -136,65 +144,115 @@ struct MovieDetailView: View {
                                     Text("•")
                                     Text(runtime)
                                 }
-                                
-                                if let rating = item.officialRating {
-                                    Text("•")
-                                    Text(rating)
-                                }
                             }
                             .font(.system(size: 15))
                             .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                             
-                            // Genres
-                            if !item.genres.isEmpty {
-                                HStack(spacing: 8) {
-                                    ForEach(item.genres.prefix(3), id: \.self) { genre in
-                                        Text(genre)
-                                    }
-                                }
-                                .font(.system(size: 15))
-                                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                            // Rating Row (if exists)
+                            if let officialRating = item.officialRating {
+                                Text(officialRating)
+                                    .font(.system(size: 13))
+                                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(themeManager.currentTheme.surfaceColor.opacity(0.1))
+                                    .cornerRadius(6)
                             }
-                        }
-                        
-                        // Action buttons
-                        Button(action: { showingPlayer = true }) {
-                            HStack(spacing: 8) {
-                                if hasProgress {
-                                    CircularProgressView(
-                                        progress: progressPercentage,
-                                        lineWidth: 2,
-                                        size: 24,
-                                        color: .white
-                                    )
-                                    .overlay {
-                                        Image(systemName: "play.fill")
-                                            .font(.system(size: 8, weight: .semibold))
-                                            .foregroundColor(.white)
+                            
+                            // Additional Metadata
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    if item.userData.playCount > 0 {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "play.circle.fill")
+                                                .font(.system(size: 12))
+                                            Text("Watched \(item.userData.playCount) time\(item.userData.playCount == 1 ? "" : "s")")
+                                        }
                                     }
-                                } else {
-                                    Image(systemName: "play.fill")
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .frame(width: 24, height: 24)
+                                    
+                                    if item.userData.isFavorite {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "heart.fill")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.pink)
+                                            Text("Favorite")
+                                        }
+                                    }
+                                    
+                                    if let releaseDate = formattedReleaseDate {
+                                        Text(releaseDate)
+                                    }
                                 }
-                                Text(hasProgress ? "Resume" : "Play")
-                                    .fontWeight(.semibold)
-                                    .frame(width: 70, alignment: .leading)
+                            }
+                            .font(.system(size: 13))
+                            .foregroundColor(themeManager.currentTheme.tertiaryTextColor)
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    .offset(y: -90)
+                    .padding(.bottom, -90)
+                    
+                    // Featured Tagline (if only one exists)
+                    if item.taglines.count == 1, let tagline = item.taglines.first {
+                        Text(tagline)
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                            .italic()
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.horizontal, 24)
+                    }
+                    
+                    // Genres
+                    if !item.genres.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(item.genres, id: \.self) { genre in
+                                    Text(genre)
+                                        .font(.system(size: 13, weight: .medium))
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(.ultraThinMaterial)
+                                        .cornerRadius(16)
+                                }
                             }
                             .padding(.horizontal, 24)
-                            .frame(height: 48)
+                        }
+                    }
+                    
+                    // Play Button and Progress
+                    VStack(spacing: 8) {
+                        Button(action: {
+                            showingPlayer = true
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "play.fill")
+                                Text(hasProgress ? "Resume" : "Play")
+                                    .fontWeight(.semibold)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
                             .background(themeManager.currentTheme.accentGradient)
                             .foregroundColor(.white)
-                            .cornerRadius(24)
+                            .cornerRadius(12)
                         }
                         
-                        // Overview
-                        if let overview = item.overview {
+                        if hasProgress {
+                            HStack(spacing: 4) {
+                                ProgressView(value: progressPercentage)
+                                    .tint(themeManager.currentTheme.surfaceColor)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    
+                    // Overview
+                    if let overview = item.overview {
+                        VStack(alignment: .leading, spacing: 8) {
                             Text(showFullOverview ? overview : (shortOverview ?? overview))
                                 .font(.system(size: 15))
                                 .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                                 .lineSpacing(4)
-                                .padding(.top, 8)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                             
                             if shortOverview != nil && !showFullOverview {
                                 Button(action: { showFullOverview = true }) {
@@ -204,16 +262,19 @@ struct MovieDetailView: View {
                                 }
                             }
                         }
+                        .padding(.horizontal, 24)
                     }
-                    .padding(24)
                 }
+                .padding(.vertical, 24)
             }
         }
-        .background(themeManager.currentTheme.backgroundColor)
-        .ignoresSafeArea()
+        .background(backgroundGradient)
+        .ignoresSafeArea(edges: .top)
         .navigationBarHidden(true)
         .fullScreenCover(isPresented: $showingPlayer) {
-            VideoPlayerView(item: item)
+            NavigationView {
+                VideoPlayerView(item: item)
+            }
         }
     }
 }

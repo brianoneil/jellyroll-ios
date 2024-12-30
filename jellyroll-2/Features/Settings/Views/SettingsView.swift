@@ -6,7 +6,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 themeManager.currentTheme.backgroundColor.ignoresSafeArea()
                 .onAppear {

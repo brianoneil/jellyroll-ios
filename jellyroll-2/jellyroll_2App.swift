@@ -32,7 +32,6 @@ struct jellyroll_2App: App {
                 .environmentObject(themeManager)
                 .preferredColorScheme(themeManager.currentThemeType == .dark ? .dark : .light)
             }
-            .trackOrientation()
         }
     }
 }
