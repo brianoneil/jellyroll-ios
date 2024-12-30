@@ -58,14 +58,14 @@ struct DarkTheme: Theme {
     
     let overlayGradient = LinearGradient(
         colors: [
-            .clear,
-            .clear,
-            .clear,
+            .black.opacity(0.7),
+            .black.opacity(0.5),
             .black.opacity(0.3),
-            .black.opacity(0.6)
+            .black.opacity(0.1),
+            .clear
         ],
-        startPoint: .top,
-        endPoint: .bottom
+        startPoint: .bottom,
+        endPoint: .top
     )
     
     var cardGradient: LinearGradient {
@@ -117,14 +117,14 @@ struct LightTheme: Theme {
     
     let overlayGradient = LinearGradient(
         colors: [
-            .clear,
-            .clear,
-            Color(red: 0.45, green: 0.48, blue: 0.58).opacity(0.15),
-            Color(red: 0.45, green: 0.48, blue: 0.58).opacity(0.3),
-            Color(red: 0.45, green: 0.48, blue: 0.58).opacity(0.5)
+            .black.opacity(0.7),
+            .black.opacity(0.5),
+            .black.opacity(0.3),
+            .black.opacity(0.1),
+            .clear
         ],
-        startPoint: .top,
-        endPoint: .bottom
+        startPoint: .bottom,
+        endPoint: .top
     )
     
     var cardGradient: LinearGradient {

@@ -40,8 +40,8 @@ struct MovieDetailView: View {
         LinearGradient(
             colors: [
                 themeManager.currentTheme.backgroundColor,
+                themeManager.currentTheme.backgroundColor,
                 themeManager.currentTheme.backgroundColor.opacity(0.95),
-                themeManager.currentTheme.surfaceColor.opacity(0.05),
                 themeManager.currentTheme.backgroundColor
             ],
             startPoint: .top,
