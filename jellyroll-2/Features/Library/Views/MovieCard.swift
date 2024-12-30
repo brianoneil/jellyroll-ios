@@ -165,14 +165,10 @@ struct MovieCard: View {
         .scaleEffect(isHovered ? 1.02 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
         .fullScreenCover(isPresented: $showingPlayer) {
-            NavigationView {
-                VideoPlayerView(item: item)
-            }
+            VideoPlayerView(item: item)
         }
         .sheet(isPresented: $showingDetail) {
-            NavigationView {
-                MovieDetailView(item: item)
-            }
+            MovieDetailView(item: item)
         }
     }
 } 
