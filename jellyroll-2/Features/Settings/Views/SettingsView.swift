@@ -9,6 +9,9 @@ struct SettingsView: View {
         NavigationView {
             ZStack {
                 themeManager.currentTheme.backgroundColor.ignoresSafeArea()
+                .onAppear {
+                    print("SettingsView appeared, current theme: \(themeManager.currentThemeType)")
+                }
                 
                 List {
                     // User Profile Section
@@ -46,17 +49,69 @@ struct SettingsView: View {
                     
                     // Appearance Section
                     Section {
-                        Picker("Theme", selection: Binding(
-                            get: { themeManager.currentThemeType },
-                            set: { themeManager.setTheme($0) }
-                        )) {
-                            Text("Light")
-                                .tag(ThemeType.light)
-                            Text("Dark")
-                                .tag(ThemeType.dark)
+                        HStack {
+                            Label("Theme", systemImage: "paintbrush.fill")
+                                .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                            Spacer()
+                            HStack(spacing: 12) {
+                                Button {
+                                    print("Light theme button tapped")
+                                    withAnimation {
+                                        themeManager.setTheme(.light)
+                                        print("Theme set to light, current theme: \(themeManager.currentThemeType)")
+                                    }
+                                } label: {
+                                    ZStack {
+                                        Circle()
+                                            .fill(themeManager.currentThemeType == .light ? 
+                                                themeManager.currentTheme.accentColor.opacity(0.2) : 
+                                                themeManager.currentTheme.surfaceColor)
+                                            .overlay(
+                                                Circle()
+                                                    .stroke(themeManager.currentThemeType == .light ? 
+                                                        themeManager.currentTheme.accentColor : .clear, 
+                                                        lineWidth: 2)
+                                            )
+                                            .frame(width: 32, height: 32)
+                                        
+                                        Image(systemName: "sun.max.fill")
+                                            .font(.system(size: 20))
+                                            .foregroundColor(.orange)
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                                
+                                Button {
+                                    print("Dark theme button tapped")
+                                    withAnimation {
+                                        themeManager.setTheme(.dark)
+                                        print("Theme set to dark, current theme: \(themeManager.currentThemeType)")
+                                    }
+                                } label: {
+                                    ZStack {
+                                        Circle()
+                                            .fill(themeManager.currentThemeType == .dark ? 
+                                                themeManager.currentTheme.accentColor.opacity(0.2) : 
+                                                themeManager.currentTheme.surfaceColor)
+                                            .overlay(
+                                                Circle()
+                                                    .stroke(themeManager.currentThemeType == .dark ? 
+                                                        themeManager.currentTheme.accentColor : .clear, 
+                                                        lineWidth: 2)
+                                            )
+                                            .frame(width: 32, height: 32)
+                                        
+                                        Image(systemName: "moon.fill")
+                                            .font(.system(size: 20))
+                                            .foregroundColor(.indigo)
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
-                        .pickerStyle(.segmented)
+                        .padding(.vertical, 2)
                         .listRowBackground(themeManager.currentTheme.elevatedSurfaceColor)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                     } header: {
                         Text("Appearance")
                             .foregroundColor(themeManager.currentTheme.secondaryTextColor)
