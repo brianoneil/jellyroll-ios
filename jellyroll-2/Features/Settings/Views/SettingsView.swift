@@ -105,17 +105,23 @@ struct SettingsView: View {
                     
                     // Logout Button
                     Section {
-                        Button(role: .destructive) {
+                        Button {
                             loginViewModel.logout()
                             dismiss()
                         } label: {
                             HStack {
                                 Spacer()
                                 Label("Logout", systemImage: "rectangle.portrait.and.arrow.right")
+                                    .foregroundColor(.white)
+                                    .fontWeight(.medium)
                                 Spacer()
                             }
+                            .padding(.vertical, 8)
+                            .background(Color.red)
+                            .cornerRadius(8)
                         }
-                        .listRowBackground(themeManager.currentTheme.elevatedSurfaceColor)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                     }
                 }
                 .scrollContentBackground(.hidden)
