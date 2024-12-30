@@ -120,7 +120,17 @@ struct SettingsView: View {
                 }
                 .scrollContentBackground(.hidden)
                 .navigationTitle("Settings")
+                .navigationBarTitleTextColor(themeManager.currentTheme.primaryTextColor)
             }
         }
+    }
+}
+
+// Extension to support navigation bar title color
+extension View {
+    func navigationBarTitleTextColor(_ color: Color) -> some View {
+        UINavigationBar.appearance().largeTitleTextAttributes = [.foregroundColor: UIColor(color)]
+        UINavigationBar.appearance().titleTextAttributes = [.foregroundColor: UIColor(color)]
+        return self
     }
 } 
