@@ -3,7 +3,7 @@ import OSLog
 
 struct ContinueWatchingCard: View {
     let item: MediaItem
-    let themeManager: ThemeManager
+    @EnvironmentObject private var themeManager: ThemeManager
     private let logger = Logger(subsystem: "com.jellyroll.app", category: "ContinueWatchingCard")
     @State private var isHovered = false
     @State private var showingPlayer = false
@@ -68,7 +68,7 @@ struct ContinueWatchingCard: View {
                             .overlay(
                                 Image(systemName: "play.fill")
                                     .font(.system(size: 30))
-                                    .foregroundStyle(themeManager.accentGradient)
+                                    .foregroundStyle(themeManager.currentTheme.accentGradient)
                             )
                     }
                     .transition(.scale.combined(with: .opacity))
@@ -82,7 +82,7 @@ struct ContinueWatchingCard: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text(item.name)
                             .font(.system(size: 28, weight: .bold))
-                            .foregroundStyle(JellyfinTheme.textGradient(for: themeManager.currentMode))
+                            .foregroundStyle(themeManager.currentTheme.textGradient)
                             .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
                         
                         // Metadata row
@@ -91,24 +91,24 @@ struct ContinueWatchingCard: View {
                             if let episodeInfo = formatEpisodeInfo() {
                                 Text(episodeInfo)
                                     .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
+                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
                             }
                             
                             // Year
                             if let year = item.yearText {
                                 Text(year)
                                     .font(.system(size: 12))
-                                    .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
+                                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                             }
                             
                             // Genre
                             if let genre = item.genreText {
                                 Text("•")
                                     .font(.system(size: 12))
-                                    .foregroundColor(JellyfinTheme.Text.tertiary(for: themeManager.currentMode))
+                                    .foregroundColor(themeManager.currentTheme.tertiaryTextColor)
                                 Text(genre)
                                     .font(.system(size: 12))
-                                    .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
+                                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                             }
                         }
                         .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
@@ -119,10 +119,10 @@ struct ContinueWatchingCard: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "clock.fill")
                                     .font(.system(size: 10))
-                                    .foregroundStyle(themeManager.accentGradient)
+                                    .foregroundStyle(themeManager.currentTheme.accentGradient)
                                 Text(progressText)
                                     .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
+                                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                             }
                             .padding(.vertical, 3)
                             .padding(.horizontal, 6)
@@ -141,7 +141,7 @@ struct ContinueWatchingCard: View {
                                         .foregroundStyle(.white)
                                 }
                                 .padding(10)
-                                .background(themeManager.accentGradient)
+                                .background(themeManager.currentTheme.accentGradient)
                                 .clipShape(Circle())
                                 .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                             }
@@ -160,7 +160,7 @@ struct ContinueWatchingCard: View {
                             
                             // Progress
                             Rectangle()
-                                .fill(themeManager.accentGradient)
+                                .fill(themeManager.currentTheme.accentGradient)
                                 .frame(width: max(0, min(metrics.size.width * progressPercentage, metrics.size.width)), height: 4)
                         }
                     }

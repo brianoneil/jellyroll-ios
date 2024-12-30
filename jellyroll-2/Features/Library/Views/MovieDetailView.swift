@@ -3,7 +3,7 @@ import SwiftUI
 struct MovieDetailView: View {
     let item: MediaItem
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var themeManager = ThemeManager.shared
+    @EnvironmentObject private var themeManager: ThemeManager
     @State private var showingPlayer = false
     @State private var showFullOverview = false
     
@@ -39,10 +39,10 @@ struct MovieDetailView: View {
     private var backgroundGradient: LinearGradient {
         LinearGradient(
             colors: [
-                JellyfinTheme.backgroundColor(for: themeManager.currentMode),
-                JellyfinTheme.backgroundColor(for: themeManager.currentMode).opacity(0.95),
-                JellyfinTheme.surfaceColor(for: themeManager.currentMode).opacity(0.05),
-                JellyfinTheme.backgroundColor(for: themeManager.currentMode)
+                themeManager.currentTheme.backgroundColor,
+                themeManager.currentTheme.backgroundColor.opacity(0.95),
+                themeManager.currentTheme.surfaceColor.opacity(0.05),
+                themeManager.currentTheme.backgroundColor
             ],
             startPoint: .top,
             endPoint: .bottom
@@ -86,7 +86,7 @@ struct MovieDetailView: View {
                             .overlay {
                                 Image(systemName: "chevron.left")
                                     .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
+                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
                             }
                     }
                     .padding(16)
@@ -131,7 +131,7 @@ struct MovieDetailView: View {
                             } else {
                                 Text(item.name)
                                     .font(.system(size: 24, weight: .bold))
-                                    .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
+                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
                             }
                             
                             // Quick Info Row
@@ -146,16 +146,16 @@ struct MovieDetailView: View {
                                 }
                             }
                             .font(.system(size: 15))
-                            .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                             
                             // Rating Row (if exists)
                             if let officialRating = item.officialRating {
                                 Text(officialRating)
                                     .font(.system(size: 13))
-                                    .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
+                                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 4)
-                                    .background(JellyfinTheme.surfaceColor(for: themeManager.currentMode).opacity(0.1))
+                                    .background(themeManager.currentTheme.surfaceColor.opacity(0.1))
                                     .cornerRadius(6)
                             }
                             
@@ -185,7 +185,7 @@ struct MovieDetailView: View {
                                 }
                             }
                             .font(.system(size: 13))
-                            .foregroundColor(JellyfinTheme.Text.tertiary(for: themeManager.currentMode))
+                            .foregroundColor(themeManager.currentTheme.tertiaryTextColor)
                         }
                     }
                     .padding(.horizontal, 24)
@@ -196,7 +196,7 @@ struct MovieDetailView: View {
                     if item.taglines.count == 1, let tagline = item.taglines.first {
                         Text(tagline)
                             .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                             .italic()
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.horizontal, 24)
@@ -231,7 +231,7 @@ struct MovieDetailView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                            .background(themeManager.accentGradient)
+                            .background(themeManager.currentTheme.accentGradient)
                             .foregroundColor(.white)
                             .cornerRadius(12)
                         }
@@ -239,7 +239,7 @@ struct MovieDetailView: View {
                         if hasProgress {
                             HStack(spacing: 4) {
                                 ProgressView(value: progressPercentage)
-                                    .tint(JellyfinTheme.surfaceColor(for: themeManager.currentMode))
+                                    .tint(themeManager.currentTheme.surfaceColor)
                             }
                         }
                     }
@@ -250,41 +250,15 @@ struct MovieDetailView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text(showFullOverview ? overview : (shortOverview ?? overview))
                                 .font(.system(size: 15))
-                                .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
+                                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                                 .lineSpacing(4)
-                                .lineLimit(showFullOverview ? nil : 10)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                             
-                            if overview.split(separator: " ").count > 80 {
-                                Button(action: {
-                                    withAnimation {
-                                        showFullOverview.toggle()
-                                    }
-                                }) {
-                                    Text(showFullOverview ? "Show less" : "More")
-                                        .font(.system(size: 15, weight: .medium))
-                                        .foregroundStyle(themeManager.accentGradient)
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 24)
-                    }
-                    
-                    // Tags
-                    if !item.taglines.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Tags")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
-                            
-                            FlowLayout(spacing: 6) {
-                                ForEach(item.taglines, id: \.self) { tag in
-                                    Text(tag)
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(JellyfinTheme.Text.tertiary(for: themeManager.currentMode))
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(JellyfinTheme.surfaceColor(for: themeManager.currentMode).opacity(0.06))
-                                        .cornerRadius(12)
+                            if shortOverview != nil && !showFullOverview {
+                                Button(action: { showFullOverview = true }) {
+                                    Text("Read More")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(themeManager.currentTheme.tertiaryTextColor)
                                 }
                             }
                         }
@@ -297,7 +271,6 @@ struct MovieDetailView: View {
         .background(backgroundGradient)
         .ignoresSafeArea(edges: .top)
         .navigationBarHidden(true)
-        .preferredColorScheme(themeManager.currentMode == .dark ? .dark : .light)
         .fullScreenCover(isPresented: $showingPlayer) {
             NavigationView {
                 VideoPlayerView(item: item)

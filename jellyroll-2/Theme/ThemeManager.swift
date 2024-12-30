@@ -1,25 +1,48 @@
 import SwiftUI
 
-enum ThemeMode {
+enum ThemeType: String {
     case light
     case dark
 }
 
-class ThemeManager: ObservableObject {
-    static let shared = ThemeManager()
-    
-    @Published var currentMode: ThemeMode = .dark {
+class ThemeManager: ObservableObject {    
+    @Published private(set) var currentTheme: Theme
+    @Published private(set) var currentThemeType: ThemeType {
         didSet {
-            UserDefaults.standard.set(currentMode == .dark, forKey: "isDarkMode")
+            updateTheme()
         }
     }
     
-    var accentGradient: LinearGradient {
-        currentMode == .light ? JellyfinTheme.lightAccentGradient : JellyfinTheme.darkAccentGradient
+    init(initialTheme: Theme? = nil) {
+        if let theme = initialTheme {
+            self.currentTheme = theme
+            self.currentThemeType = theme is DarkTheme ? .dark : .light
+        } else {
+            // Load saved theme preference
+            let themeType = ThemeType(rawValue: UserDefaults.standard.string(forKey: "themeType") ?? "light") ?? .light
+            self.currentThemeType = themeType
+            self.currentTheme = themeType == .dark ? DarkTheme() : LightTheme()
+        }
     }
     
-    private init() {
-        // Load saved theme preference
-        currentMode = UserDefaults.standard.bool(forKey: "isDarkMode") ? .dark : .light
+    func setTheme(_ type: ThemeType) {
+        currentThemeType = type
+        UserDefaults.standard.set(type.rawValue, forKey: "themeType")
+    }
+    
+    private func updateTheme() {
+        currentTheme = currentThemeType == .dark ? DarkTheme() : LightTheme()
+    }
+}
+
+// Environment key for the theme manager
+private struct ThemeManagerKey: EnvironmentKey {
+    static let defaultValue: ThemeManager? = nil
+}
+
+extension EnvironmentValues {
+    var themeManager: ThemeManager {
+        get { self[ThemeManagerKey.self] ?? ThemeManager() }
+        set { self[ThemeManagerKey.self] = newValue }
     }
 } 

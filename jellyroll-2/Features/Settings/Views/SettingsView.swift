@@ -2,13 +2,13 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject private var loginViewModel: LoginViewModel
+    @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var themeManager = ThemeManager.shared
     
     var body: some View {
         NavigationView {
             ZStack {
-                JellyfinTheme.backgroundColor(for: themeManager.currentMode).ignoresSafeArea()
+                themeManager.currentTheme.backgroundColor.ignoresSafeArea()
                 
                 List {
                     // User Profile Section
@@ -16,7 +16,7 @@ struct SettingsView: View {
                         HStack(spacing: 16) {
                             // Avatar
                             Circle()
-                                .fill(themeManager.accentGradient)
+                                .fill(themeManager.currentTheme.accentGradient)
                                 .frame(width: 28, height: 28)
                                 .overlay(
                                     Text(String(loginViewModel.user?.name.prefix(1).uppercased() ?? "?"))
@@ -29,75 +29,78 @@ struct SettingsView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(loginViewModel.user?.name ?? "User")
                                     .font(.headline)
-                                    .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
+                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
                                 if let user = loginViewModel.user {
                                     Text(user.policy.isAdministrator ? "Administrator" : "User")
                                         .font(.subheadline)
-                                        .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
+                                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                                 }
                             }
                         }
                         .padding(.vertical, 8)
-                        .listRowBackground(JellyfinTheme.elevatedSurfaceColor(for: themeManager.currentMode))
+                        .listRowBackground(themeManager.currentTheme.elevatedSurfaceColor)
                     } header: {
                         Text("Profile")
-                            .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                     }
                     
                     // Appearance Section
                     Section {
-                        Picker("Theme", selection: $themeManager.currentMode) {
+                        Picker("Theme", selection: Binding(
+                            get: { themeManager.currentThemeType },
+                            set: { themeManager.setTheme($0) }
+                        )) {
                             Text("Light")
-                                .tag(ThemeMode.light)
+                                .tag(ThemeType.light)
                             Text("Dark")
-                                .tag(ThemeMode.dark)
+                                .tag(ThemeType.dark)
                         }
                         .pickerStyle(.segmented)
-                        .listRowBackground(JellyfinTheme.elevatedSurfaceColor(for: themeManager.currentMode))
+                        .listRowBackground(themeManager.currentTheme.elevatedSurfaceColor)
                     } header: {
                         Text("Appearance")
-                            .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                     }
                     
                     // Server Information
                     Section {
                         HStack {
                             Label("Server", systemImage: "server.rack")
-                                .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
+                                .foregroundColor(themeManager.currentTheme.primaryTextColor)
                             Spacer()
                             Text(loginViewModel.serverURL)
-                                .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
+                                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                         }
-                        .listRowBackground(JellyfinTheme.elevatedSurfaceColor(for: themeManager.currentMode))
+                        .listRowBackground(themeManager.currentTheme.elevatedSurfaceColor)
                         
                         if let user = loginViewModel.user {
                             HStack {
                                 Label("Last Login", systemImage: "clock")
-                                    .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
+                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
                                 Spacer()
                                 Text(user.lastLoginDate.formatted(.relative(presentation: .named)))
-                                    .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
+                                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                             }
-                            .listRowBackground(JellyfinTheme.elevatedSurfaceColor(for: themeManager.currentMode))
+                            .listRowBackground(themeManager.currentTheme.elevatedSurfaceColor)
                         }
                     } header: {
                         Text("Connection")
-                            .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                     }
                     
                     // App Information
                     Section {
                         HStack {
                             Label("Version", systemImage: "info.circle")
-                                .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
+                                .foregroundColor(themeManager.currentTheme.primaryTextColor)
                             Spacer()
                             Text("1.0.0")
-                                .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
+                                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                         }
-                        .listRowBackground(JellyfinTheme.elevatedSurfaceColor(for: themeManager.currentMode))
+                        .listRowBackground(themeManager.currentTheme.elevatedSurfaceColor)
                     } header: {
                         Text("About")
-                            .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                     }
                     
                     // Logout Button
@@ -112,13 +115,12 @@ struct SettingsView: View {
                                 Spacer()
                             }
                         }
-                        .listRowBackground(JellyfinTheme.elevatedSurfaceColor(for: themeManager.currentMode))
+                        .listRowBackground(themeManager.currentTheme.elevatedSurfaceColor)
                     }
                 }
                 .scrollContentBackground(.hidden)
                 .navigationTitle("Settings")
             }
         }
-        .preferredColorScheme(themeManager.currentMode == .dark ? .dark : .light)
     }
 } 

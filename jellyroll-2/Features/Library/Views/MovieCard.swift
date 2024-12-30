@@ -3,7 +3,7 @@ import SwiftUI
 struct MovieCard: View {
     let item: MediaItem
     let style: Style
-    @ObservedObject var themeManager: ThemeManager
+    @EnvironmentObject private var themeManager: ThemeManager
     @State private var isHovered = false
     @State private var showingPlayer = false
     @State private var showingDetail = false
@@ -34,10 +34,9 @@ struct MovieCard: View {
         }
     }
     
-    init(item: MediaItem, style: Style = .list, themeManager: ThemeManager) {
+    init(item: MediaItem, style: Style = .list) {
         self.item = item
         self.style = style
-        self._themeManager = ObservedObject(wrappedValue: themeManager)
     }
     
     private var progressPercentage: Double {
@@ -80,7 +79,7 @@ struct MovieCard: View {
                                 .foregroundStyle(.white)
                         }
                         .padding(10)
-                        .background(themeManager.currentMode == .light ? JellyfinTheme.lightAccentGradient : JellyfinTheme.darkAccentGradient)
+                        .background(themeManager.currentTheme.accentGradient)
                         .clipShape(Circle())
                         .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                     }
@@ -95,12 +94,12 @@ struct MovieCard: View {
                             ZStack(alignment: .leading) {
                                 // Background
                                 Rectangle()
-                                    .fill(JellyfinTheme.surfaceColor(for: themeManager.currentMode).opacity(0.2))
+                                    .fill(themeManager.currentTheme.surfaceColor.opacity(0.2))
                                     .frame(height: 3)
                                 
                                 // Progress
                                 Rectangle()
-                                    .fill(themeManager.accentGradient)
+                                    .fill(themeManager.currentTheme.accentGradient)
                                     .frame(width: max(0, min(metrics.size.width * progressPercentage, metrics.size.width)), height: 3)
                             }
                         }
@@ -109,7 +108,7 @@ struct MovieCard: View {
                     }
                     .background(
                         LinearGradient(
-                            colors: [.clear, JellyfinTheme.backgroundColor(for: themeManager.currentMode).opacity(0.3)],
+                            colors: [.clear, themeManager.currentTheme.backgroundColor.opacity(0.3)],
                             startPoint: .top,
                             endPoint: .bottom
                         )
@@ -126,7 +125,7 @@ struct MovieCard: View {
                 // Movie Title
                 Text(item.name)
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
+                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
                     .lineLimit(style.titleLineLimit)
                 
                 // Movie Metadata
@@ -134,34 +133,34 @@ struct MovieCard: View {
                     if let year = item.yearText {
                         Text(year)
                             .font(.system(size: 12))
-                            .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                     }
                     if let genre = item.genreText {
                         Text("•")
                             .font(.system(size: 12))
-                            .foregroundColor(JellyfinTheme.Text.tertiary(for: themeManager.currentMode))
+                            .foregroundColor(themeManager.currentTheme.tertiaryTextColor)
                         Text(genre)
                             .font(.system(size: 12))
-                            .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                     }
                     
                     if let rating = item.communityRating {
                         Text("•")
                             .font(.system(size: 12))
-                            .foregroundColor(JellyfinTheme.Text.tertiary(for: themeManager.currentMode))
+                            .foregroundColor(themeManager.currentTheme.tertiaryTextColor)
                         Image(systemName: "star.fill")
                             .font(.system(size: 10))
-                            .foregroundStyle(themeManager.currentMode == .light ? JellyfinTheme.lightAccentGradient : JellyfinTheme.darkAccentGradient)
+                            .foregroundStyle(themeManager.currentTheme.accentGradient)
                         Text(String(format: "%.1f", rating))
                             .font(.system(size: 12))
-                            .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                     }
                 }
             }
             .padding(.horizontal, 4)
         }
         .padding(8)
-        .background(JellyfinTheme.cardGradient(for: themeManager.currentMode))
+        .background(themeManager.currentTheme.cardGradient)
         .cornerRadius(12)
         .scaleEffect(isHovered ? 1.02 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)

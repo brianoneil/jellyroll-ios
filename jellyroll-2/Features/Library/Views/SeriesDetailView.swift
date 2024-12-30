@@ -3,15 +3,15 @@ import SwiftUI
 struct SeriesDetailView: View {
     let item: MediaItem
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var themeManager = ThemeManager.shared
+    @EnvironmentObject private var themeManager: ThemeManager
     
     private var backgroundGradient: LinearGradient {
         LinearGradient(
             colors: [
-                JellyfinTheme.backgroundColor(for: themeManager.currentMode),
-                JellyfinTheme.backgroundColor(for: themeManager.currentMode).opacity(0.95),
-                JellyfinTheme.surfaceColor(for: themeManager.currentMode).opacity(0.05),
-                JellyfinTheme.backgroundColor(for: themeManager.currentMode)
+                themeManager.currentTheme.backgroundColor,
+                themeManager.currentTheme.backgroundColor.opacity(0.95),
+                themeManager.currentTheme.surfaceColor.opacity(0.05),
+                themeManager.currentTheme.backgroundColor
             ],
             startPoint: .top,
             endPoint: .bottom
@@ -34,7 +34,7 @@ struct SeriesDetailView: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 260)
                     .overlay(alignment: .bottom) {
-                        JellyfinTheme.overlayGradient
+                        themeManager.currentTheme.overlayGradient
                             .frame(height: 160)
                     }
                     
@@ -46,7 +46,7 @@ struct SeriesDetailView: View {
                             .overlay {
                                 Image(systemName: "chevron.left")
                                     .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
+                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
                             }
                     }
                     .padding(16)
@@ -79,7 +79,7 @@ struct SeriesDetailView: View {
                             
                             Text(item.name)
                                 .font(.system(size: 24, weight: .bold))
-                                .foregroundColor(JellyfinTheme.Text.primary(for: themeManager.currentMode))
+                                .foregroundColor(themeManager.currentTheme.primaryTextColor)
                             
                             // Quick Info Row
                             HStack(spacing: 12) {
@@ -93,7 +93,7 @@ struct SeriesDetailView: View {
                                 }
                             }
                             .font(.system(size: 15))
-                            .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                         }
                     }
                     .padding(.horizontal, 24)
@@ -105,7 +105,7 @@ struct SeriesDetailView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text(overview)
                                 .font(.system(size: 15))
-                                .foregroundColor(JellyfinTheme.Text.secondary(for: themeManager.currentMode))
+                                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                                 .lineSpacing(4)
                         }
                         .padding(.horizontal, 24)
@@ -117,6 +117,5 @@ struct SeriesDetailView: View {
         .background(backgroundGradient)
         .ignoresSafeArea(edges: .top)
         .navigationBarHidden(true)
-        .preferredColorScheme(themeManager.currentMode == .dark ? .dark : .light)
     }
 } 
