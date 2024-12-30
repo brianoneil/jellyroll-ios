@@ -79,11 +79,25 @@ struct ContinueWatchingCard: View {
                     Spacer()
                     
                     // Title and metadata
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(item.name)
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundStyle(themeManager.currentTheme.textGradient)
+                    VStack(alignment: .leading, spacing: 4) {
+                        if item.imageTags["Logo"] != nil {
+                            JellyfinImage(
+                                itemId: item.id,
+                                imageType: .logo,
+                                aspectRatio: 16/9,
+                                cornerRadius: 0,
+                                fallbackIcon: "film"
+                            )
+                            .frame(height: 28)
+                            .frame(maxWidth: 160, alignment: .leading)
+                            .scaledToFit()
                             .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
+                        } else {
+                            Text(item.name)
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundStyle(themeManager.currentTheme.textGradient)
+                                .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
+                        }
                         
                         // Metadata row
                         HStack(spacing: 4) {
@@ -94,22 +108,28 @@ struct ContinueWatchingCard: View {
                                     .foregroundColor(themeManager.currentTheme.primaryTextColor)
                             }
                             
-                            // Year
-                            if let year = item.yearText {
-                                Text(year)
-                                    .font(.system(size: 12))
-                                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Spacer()
+                                HStack(spacing: 4) {
+                                    // Year
+                                    if let year = item.yearText {
+                                        Text(year)
+                                            .font(.system(size: 11))
+                                            .foregroundColor(themeManager.currentTheme.primaryTextColor.opacity(0.95))
+                                    }
+                                    
+                                    // Genre
+                                    if let genre = item.genreText {
+                                        Text("•")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(themeManager.currentTheme.primaryTextColor.opacity(0.8))
+                                        Text(genre)
+                                            .font(.system(size: 11))
+                                            .foregroundColor(themeManager.currentTheme.primaryTextColor.opacity(0.95))
+                                    }
+                                }
                             }
-                            
-                            // Genre
-                            if let genre = item.genreText {
-                                Text("•")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(themeManager.currentTheme.tertiaryTextColor)
-                                Text(genre)
-                                    .font(.system(size: 12))
-                                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                            }
+                            .frame(height: 20)
                         }
                         .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
                         

@@ -50,7 +50,7 @@ struct SettingsView: View {
                     // Appearance Section
                     Section {
                         HStack {
-                            Label("Theme", systemImage: "paintbrush.fill")
+                            Label("Theme", systemImage: "paintbrush")
                                 .foregroundColor(themeManager.currentTheme.primaryTextColor)
                             Spacer()
                             HStack(spacing: 12) {

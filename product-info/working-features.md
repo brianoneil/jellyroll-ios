@@ -80,6 +80,9 @@
    - `textGradient` for emphasized text
    - `overlayGradient` for image overlays
 4. Theme changes are handled automatically through the environment
+5. new semantic color properties can be added to the theme manager for new use cases
+6. new gradient properties can be added to the theme manager for new use cases
+7. Never use raw colors in the code, always use the semantic color properties
 
 ### Error Handling
 - Specific error messages for:
