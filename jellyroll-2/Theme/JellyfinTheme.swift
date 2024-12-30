@@ -81,39 +81,36 @@ struct DarkTheme: Theme {
 }
 
 struct LightTheme: Theme {
-    let backgroundColor = Color(red: 0.92, green: 0.97, blue: 0.95)
-    let surfaceColor = Color(red: 0.96, green: 0.98, blue: 0.99)
-    let elevatedSurfaceColor = Color.white.opacity(0.9)
+    let backgroundColor = Color(red: 0.45, green: 0.48, blue: 0.58)    // Very light navy base
+    let surfaceColor = Color(red: 0.48, green: 0.51, blue: 0.62)      // Lighter surface
+    let elevatedSurfaceColor = Color(red: 0.51, green: 0.54, blue: 0.66)
     
-    let accentColor = Color(red: 0.60, green: 0.95, blue: 0.75)
+    let accentColor = Color(red: 1.00, green: 0.80, blue: 0.40)       // Bright sunny orange
     let accentGradient = LinearGradient(
         colors: [
-            Color(red: 0.60, green: 0.95, blue: 0.75),
-            Color(red: 0.45, green: 0.75, blue: 0.98)
+            Color(red: 1.00, green: 0.80, blue: 0.40),                // Bright sunny orange
+            Color(red: 1.00, green: 0.60, blue: 0.50)                 // Light coral
         ],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
     
-    let primaryTextColor = Color(red: 0.2, green: 0.2, blue: 0.3)
-    let secondaryTextColor = Color(red: 0.3, green: 0.3, blue: 0.4).opacity(0.8)
-    let tertiaryTextColor = Color(red: 0.4, green: 0.4, blue: 0.5).opacity(0.6)
-    let separatorColor = Color(red: 0.4, green: 0.4, blue: 0.5).opacity(0.2)
+    let primaryTextColor: Color = .white
+    let secondaryTextColor = Color.white
+    let tertiaryTextColor = Color.white.opacity(0.9)
+    let separatorColor = Color.white.opacity(0.3)
     
     let backgroundGradient = LinearGradient(
         colors: [
-            Color(red: 0.92, green: 0.97, blue: 0.95),
-            Color(red: 0.90, green: 0.95, blue: 0.99)
+            Color(red: 0.45, green: 0.48, blue: 0.58),                // Very light navy
+            Color(red: 0.48, green: 0.51, blue: 0.62)                 // Lighter navy
         ],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
     
     let textGradient = LinearGradient(
-        colors: [
-            Color(red: 0.2, green: 0.2, blue: 0.3),
-            Color(red: 0.3, green: 0.3, blue: 0.4)
-        ],
+        colors: [.white, .white],
         startPoint: .top,
         endPoint: .bottom
     )
@@ -122,15 +119,22 @@ struct LightTheme: Theme {
         colors: [
             .clear,
             .clear,
-            .clear,
-            .black.opacity(0.3),
-            .black.opacity(0.6)
+            Color(red: 0.45, green: 0.48, blue: 0.58).opacity(0.15),
+            Color(red: 0.45, green: 0.48, blue: 0.58).opacity(0.3),
+            Color(red: 0.45, green: 0.48, blue: 0.58).opacity(0.5)
         ],
         startPoint: .top,
         endPoint: .bottom
     )
     
     var cardGradient: LinearGradient {
-        backgroundGradient
+        LinearGradient(
+            colors: [
+                elevatedSurfaceColor,
+                elevatedSurfaceColor.opacity(0.99)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 } 
