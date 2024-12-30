@@ -46,6 +46,41 @@
 - Settings sheet presentation
 - Consistent navigation patterns
 
+### Theme Architecture
+- Protocol-based theme system with light and dark variants
+- Centralized `ThemeManager` with environment object injection
+- Consistent color palette across the application:
+  - Background colors (primary, surface, elevated surface)
+  - Text hierarchy (primary, secondary, tertiary)
+  - Accent colors and gradients
+  - Semantic color properties for specific use cases
+- Built-in support for:
+  - Background gradients
+  - Text gradients
+  - Card styles
+  - Overlay effects
+- Theme persistence across app launches
+- Automatic system theme synchronization
+
+#### Theme Usage Guidelines
+1. Always access theme properties through the `@EnvironmentObject` `themeManager`:
+   ```swift
+   @EnvironmentObject private var themeManager: ThemeManager
+   // Use: themeManager.currentTheme.propertyName
+   ```
+2. Use semantic color properties instead of raw colors:
+   - `backgroundColor` for main backgrounds
+   - `surfaceColor` for elevated content
+   - `primaryTextColor` for important text
+   - `secondaryTextColor` for supporting text
+   - `accentColor` for highlights and actions
+3. For gradients, use the pre-defined gradient properties:
+   - `backgroundGradient` for full-screen backgrounds
+   - `accentGradient` for interactive elements
+   - `textGradient` for emphasized text
+   - `overlayGradient` for image overlays
+4. Theme changes are handled automatically through the environment
+
 ### Error Handling
 - Specific error messages for:
   - Invalid server URL
