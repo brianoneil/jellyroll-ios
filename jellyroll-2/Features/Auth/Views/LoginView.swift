@@ -7,11 +7,10 @@ struct LoginView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                ZStack {
-                    Color(themeManager.currentTheme.backgroundColor)
-                        .ignoresSafeArea()
-                    
+            ZStack {
+                themeManager.currentTheme.backgroundColor.ignoresSafeArea()
+                
+                ScrollView {
                     VStack(spacing: 20) {
                         // Logo placeholder
                         Image(systemName: "play.circle.fill")
