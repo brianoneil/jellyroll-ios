@@ -208,7 +208,9 @@ struct ContinueWatchingCard: View {
             .scaleEffect(isHovered ? 1.02 : 1.0)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
             .fullScreenCover(isPresented: $showingPlayer) {
-                VideoPlayerView(item: item)
+                NavigationView {
+                    VideoPlayerView(item: item)
+                }
             }
         }
         .frame(maxWidth: .infinity)

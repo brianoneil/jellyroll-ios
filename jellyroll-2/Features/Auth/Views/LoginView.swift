@@ -6,46 +6,48 @@ struct LoginView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        ZStack {
-            themeManager.currentTheme.backgroundColor.ignoresSafeArea()
-            
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Logo placeholder
-                    Image(systemName: "play.circle.fill")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 100, height: 100)
-                        .foregroundStyle(themeManager.currentTheme.accentGradient)
-                        .padding(.bottom, 20)
-                    
-                    if viewModel.showServerConfig {
-                        serverConfigurationView
-                    } else {
-                        loginFormView
+        NavigationView {
+            ZStack {
+                themeManager.currentTheme.backgroundColor.ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Logo placeholder
+                        Image(systemName: "play.circle.fill")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 100, height: 100)
+                            .foregroundStyle(themeManager.currentTheme.accentGradient)
+                            .padding(.bottom, 20)
+                        
+                        if viewModel.showServerConfig {
+                            serverConfigurationView
+                        } else {
+                            loginFormView
+                        }
                     }
-                }
-                .padding()
-            }
-        }
-        .disabled(viewModel.isLoading)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if !viewModel.showServerConfig {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Server") {
-                        viewModel.showServerConfiguration()
-                    }
-                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                    .padding()
                 }
             }
-        }
-        .overlay {
-            if viewModel.isLoading {
-                ProgressView()
-                    .scaleEffect(1.5)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.black.opacity(0.2))
+            .disabled(viewModel.isLoading)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if !viewModel.showServerConfig {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Server") {
+                            viewModel.showServerConfiguration()
+                        }
+                        .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                    }
+                }
+            }
+            .overlay {
+                if viewModel.isLoading {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.black.opacity(0.2))
+                }
             }
         }
         .onChange(of: viewModel.isAuthenticated) { _, isAuthenticated in
