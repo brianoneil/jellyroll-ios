@@ -35,7 +35,12 @@ class PlaybackService {
         var components = URLComponents(url: playbackURL, resolvingAgainstBaseURL: true)!
         components.queryItems = [
             URLQueryItem(name: "static", value: "true"),
-            URLQueryItem(name: "api_key", value: token.accessToken)
+            URLQueryItem(name: "api_key", value: token.accessToken),
+            // Basic audio parameters
+            URLQueryItem(name: "AudioCodec", value: "aac"),
+            URLQueryItem(name: "MaxAudioChannels", value: "2"),
+            URLQueryItem(name: "AudioSampleRate", value: "44100"),
+            URLQueryItem(name: "StartTimeTicks", value: "0")
         ]
         
         guard let finalURL = components.url else {

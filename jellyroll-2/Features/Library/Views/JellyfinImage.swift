@@ -7,8 +7,10 @@ struct JellyfinImage: View {
     let aspectRatio: CGFloat
     let cornerRadius: CGFloat
     let fallbackIcon: String
+    let blurHash: String?
     
     @State private var cachedImage: Image?
+    @State private var blurHashImage: Image?
     
     private let imageService = ImageService.shared
     private let imageCache = ImageCacheService.shared
@@ -19,13 +21,22 @@ struct JellyfinImage: View {
         imageType: ImageType = .primary,
         aspectRatio: CGFloat = 1.5,
         cornerRadius: CGFloat = 8,
-        fallbackIcon: String = "photo"
+        fallbackIcon: String = "photo",
+        blurHash: String? = nil
     ) {
         self.itemId = itemId
         self.imageType = imageType
         self.aspectRatio = aspectRatio
         self.cornerRadius = cornerRadius
         self.fallbackIcon = fallbackIcon
+        self.blurHash = blurHash
+        
+        // Generate BlurHash image at init time
+        if let hash = blurHash {
+            if let image = Image(blurHash: hash, size: CGSize(width: 32, height: 32)) {
+                self._blurHashImage = State(initialValue: image)
+            }
+        }
     }
     
     var body: some View {
@@ -33,18 +44,26 @@ struct JellyfinImage: View {
             if let image = cachedImage {
                 image
                     .resizable()
-                    .aspectRatio(contentMode: .fill)
+                    .aspectRatio(aspectRatio, contentMode: .fill)
+                    .clipped()
             } else if let imageURL = try? imageService.getImageURL(itemId: itemId, imageType: imageType) {
                 AsyncImage(url: imageURL) { phase in
                     switch phase {
                     case .empty:
-                        ProgressView()
+                        if let blurImage = blurHashImage {
+                            blurImage
+                                .resizable()
+                                .aspectRatio(aspectRatio, contentMode: .fill)
+                                .clipped()
+                        } else {
+                            fallbackView
+                        }
                     case .success(let image):
                         image
                             .resizable()
-                            .aspectRatio(contentMode: .fill)
+                            .aspectRatio(aspectRatio, contentMode: .fill)
+                            .clipped()
                             .onAppear {
-                                // Cache the loaded image
                                 Task {
                                     await cacheImage(image)
                                 }

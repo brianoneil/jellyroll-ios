@@ -61,7 +61,15 @@ struct MovieCard: View {
                     imageType: .primary,
                     aspectRatio: 2/3,
                     cornerRadius: 8,
-                    fallbackIcon: "film"
+                    fallbackIcon: "film",
+                    blurHash: {
+                        print("\n--- BlurHash Debug for \(item.name) ---")
+                        print("ImageTags: \(item.imageTags)")
+                        let hash = item.imageBlurHashes["Primary"]?.values.first
+                        print("Selected hash: \(String(describing: hash))")
+                        print("--------------------\n")
+                        return hash
+                    }()
                 )
                 .frame(maxWidth: style.imageWidth)
                 .frame(height: style.imageHeight)

@@ -1,6 +1,7 @@
 import Foundation
 import AVKit
 import OSLog
+import AVFoundation
 
 @MainActor
 class PlaybackViewModel: ObservableObject {
@@ -19,10 +20,22 @@ class PlaybackViewModel: ObservableObject {
     // Nonisolated storage for cleanup
     private var cleanupStorage = CleanupStorage()
     
+    private func configureAudioSession() {
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            logger.error("Failed to configure audio session: \(error)")
+        }
+    }
+    
     func play(item: MediaItem) async {
         isLoading = true
         errorMessage = nil
         currentItem = item
+        
+        // Configure audio session before playback
+        configureAudioSession()
         
         do {
             let url = try await playbackService.getPlaybackURL(for: item)
