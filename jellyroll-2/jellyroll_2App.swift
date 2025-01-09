@@ -9,29 +9,16 @@ import SwiftUI
 
 @main
 struct jellyroll_2App: App {
-    @StateObject private var loginViewModel = LoginViewModel()
     @StateObject private var themeManager = ThemeManager()
-
+    @StateObject private var loginViewModel = LoginViewModel()
+    
     var body: some Scene {
         WindowGroup {
-            NavigationStack {
-                Group {
-                    if loginViewModel.isInitializing {
-                        ProgressView("Loading...")
-                            .scaleEffect(1.5)
-                            .foregroundColor(themeManager.currentTheme.primaryTextColor)
-                            .tint(themeManager.currentTheme.accentColor)
-                    } else if loginViewModel.isAuthenticated {
-                        HomeView()
-                    } else {
-                        LoginView()
-                    }
-                }
-                .background(themeManager.currentTheme.backgroundGradient)
-                .environmentObject(loginViewModel)
+            ContentView()
                 .environmentObject(themeManager)
+                .environmentObject(loginViewModel)
+                .withLayoutManager()
                 .preferredColorScheme(themeManager.currentThemeType == .dark ? .dark : .light)
-            }
         }
     }
 }

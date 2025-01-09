@@ -3,116 +3,123 @@ import SwiftUI
 struct HomeView: View {
     @EnvironmentObject private var loginViewModel: LoginViewModel
     @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var layoutManager: LayoutManager
     @StateObject private var libraryViewModel = LibraryViewModel()
     @State private var showingSettings = false
     @State private var selectedTab = 0
     
+    private var tabs: [TabComponents.TabItem] {
+        var items = [
+            TabComponents.TabItem(title: "Home", icon: "house.fill")
+        ]
+        
+        if !libraryViewModel.movieLibraries.isEmpty {
+            items.append(TabComponents.TabItem(title: "Movies", icon: "film.fill"))
+        }
+        
+        if !libraryViewModel.tvShowLibraries.isEmpty {
+            items.append(TabComponents.TabItem(title: "Series", icon: "tv.fill"))
+        }
+        
+        if !libraryViewModel.musicLibraries.isEmpty {
+            items.append(TabComponents.TabItem(title: "Music", icon: "music.note"))
+        }
+        
+        return items
+    }
+    
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .top) {
-                themeManager.currentTheme.backgroundColor.ignoresSafeArea()
-                
-                // Top Navigation Bar
-                HStack {
-                    Image(systemName: "play.circle.fill")
-                        .font(.title)
-                        .foregroundStyle(themeManager.currentTheme.accentGradient)
-                    
-                    Spacer()
-                    
-                    HStack(spacing: 20) {
-                        Button(action: {}) {
-                            Image(systemName: "airplayvideo")
-                                .foregroundStyle(themeManager.currentTheme.primaryTextColor)
-                        }
+            Group {
+                if layoutManager.isPad && layoutManager.isLandscape {
+                    // iPad landscape layout with side tabs
+                    HStack(spacing: 0) {
+                        TabComponents.AdaptiveTabBar(tabs: tabs, selectedTab: $selectedTab)
                         
-                        Button(action: { showingSettings.toggle() }) {
-                            Circle()
-                                .fill(themeManager.currentTheme.accentGradient)
-                                .frame(width: 28, height: 28)
-                                .overlay(
-                                    Text(String(loginViewModel.user?.name.prefix(1).uppercased() ?? "?"))
-                                        .font(.system(size: 14, weight: .bold))
-                                        .foregroundColor(themeManager.currentTheme.primaryTextColor)
-                                )
-                        }
+                        mainContent
                     }
-                }
-                .padding(.horizontal)
-                .padding(.top, 8)
-                
-                VStack(spacing: 0) {
-                    Color.clear
-                        .frame(height: 52) // Height for navigation bar
-                    
-                    // Library Tabs
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 24) {
-                            TabButton(title: "Home", isSelected: selectedTab == 0) {
-                                selectedTab = 0
-                            }
-                            
-                            if !libraryViewModel.movieLibraries.isEmpty {
-                                TabButton(title: "Movies", isSelected: selectedTab == 1) {
-                                    selectedTab = 1
-                                }
-                            }
-                            
-                            if !libraryViewModel.tvShowLibraries.isEmpty {
-                                TabButton(title: "Series", isSelected: selectedTab == 2) {
-                                    selectedTab = 2
-                                }
-                            }
-                            
-                            if !libraryViewModel.musicLibraries.isEmpty {
-                                TabButton(title: "Music", isSelected: selectedTab == 3) {
-                                    selectedTab = 3
-                                }
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
-                    .padding(.vertical, 2)
-                    
-                    // Content Area
-                    ScrollView {
-                        if libraryViewModel.isLoading {
-                            ProgressView()
-                                .scaleEffect(1.5)
-                                .tint(themeManager.currentTheme.accentColor)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .padding(.top, 100)
-                        } else if let errorMessage = libraryViewModel.errorMessage {
-                            Text(errorMessage)
-                                .foregroundColor(themeManager.currentTheme.primaryTextColor)
-                                .padding()
-                        } else {
-                            switch selectedTab {
-                            case 0:
-                                HomeTabView(libraries: libraryViewModel.libraries, libraryViewModel: libraryViewModel)
-                                    .padding(.top, 16)
-                            case 1:
-                                MoviesTabView(libraries: libraryViewModel.movieLibraries, libraryViewModel: libraryViewModel)
-                                    .padding(.top, 16)
-                            case 2:
-                                SeriesTabView(libraries: libraryViewModel.tvShowLibraries, libraryViewModel: libraryViewModel)
-                                    .padding(.top, 16)
-                            case 3:
-                                MusicTabView(libraries: libraryViewModel.musicLibraries, libraryViewModel: libraryViewModel)
-                                    .padding(.top, 16)
-                            default:
-                                EmptyView()
-                            }
-                        }
+                } else {
+                    // Default layout with top tabs
+                    VStack(spacing: 0) {
+                        // Top Navigation Bar
+                        topNavigationBar
+                        
+                        TabComponents.AdaptiveTabBar(tabs: tabs, selectedTab: $selectedTab)
+                        
+                        mainContent
                     }
                 }
             }
+            .background(themeManager.currentTheme.backgroundColor.ignoresSafeArea())
             .navigationBarHidden(true)
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
             }
             .task {
                 await libraryViewModel.loadLibraries()
+            }
+        }
+    }
+    
+    private var topNavigationBar: some View {
+        HStack {
+            Image(systemName: "play.circle.fill")
+                .font(.title)
+                .foregroundStyle(themeManager.currentTheme.accentGradient)
+            
+            Spacer()
+            
+            HStack(spacing: 20) {
+                Button(action: {}) {
+                    Image(systemName: "airplayvideo")
+                        .foregroundStyle(themeManager.currentTheme.primaryTextColor)
+                }
+                
+                Button(action: { showingSettings.toggle() }) {
+                    Circle()
+                        .fill(themeManager.currentTheme.accentGradient)
+                        .frame(width: 28, height: 28)
+                        .overlay(
+                            Text(String(loginViewModel.user?.name.prefix(1).uppercased() ?? "?"))
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                        )
+                }
+            }
+        }
+        .padding(.horizontal)
+        .padding(.top, 8)
+    }
+    
+    private var mainContent: some View {
+        ScrollView {
+            if libraryViewModel.isLoading {
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .tint(themeManager.currentTheme.accentColor)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.top, 100)
+            } else if let errorMessage = libraryViewModel.errorMessage {
+                Text(errorMessage)
+                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                    .padding()
+            } else {
+                switch selectedTab {
+                case 0:
+                    HomeTabView(libraries: libraryViewModel.libraries, libraryViewModel: libraryViewModel)
+                        .padding(.top, 16)
+                case 1:
+                    MoviesTabView(libraries: libraryViewModel.movieLibraries, libraryViewModel: libraryViewModel)
+                        .padding(.top, 16)
+                case 2:
+                    SeriesTabView(libraries: libraryViewModel.tvShowLibraries, libraryViewModel: libraryViewModel)
+                        .padding(.top, 16)
+                case 3:
+                    MusicTabView(libraries: libraryViewModel.musicLibraries, libraryViewModel: libraryViewModel)
+                        .padding(.top, 16)
+                default:
+                    EmptyView()
+                }
             }
         }
     }
@@ -194,24 +201,35 @@ struct HomeTabView: View {
 struct MoviesTabView: View {
     let libraries: [LibraryItem]
     @ObservedObject var libraryViewModel: LibraryViewModel
+    @EnvironmentObject private var layoutManager: LayoutManager
+    @EnvironmentObject private var themeManager: ThemeManager
     
-    // Grid layout with 2 columns
-    private let columns = [
-        GridItem(.flexible(), spacing: 16),
-        GridItem(.flexible(), spacing: 16)
-    ]
+    private var columns: [GridItem] {
+        let columnCount = layoutManager.isLandscape ? 4 : 2
+        return Array(repeating: GridItem(.flexible(), spacing: 16), count: columnCount)
+    }
     
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 ForEach(libraries) { library in
                     if !libraryViewModel.getMovieItems(for: library.id).isEmpty {
-                        LazyVGrid(columns: columns, spacing: 24) {
-                            ForEach(libraryViewModel.getMovieItems(for: library.id)) { item in
-                                MovieCard(item: item, style: .grid)
+                        VStack(alignment: .leading, spacing: 16) {
+                            if libraries.count > 1 {
+                                Text(library.name)
+                                    .font(.title2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                                    .padding(.horizontal)
                             }
+                            
+                            LazyVGrid(columns: columns, spacing: 24) {
+                                ForEach(libraryViewModel.getMovieItems(for: library.id)) { item in
+                                    MovieCard(item: item, style: .grid)
+                                }
+                            }
+                            .padding(.horizontal)
                         }
-                        .padding(.horizontal)
                     }
                 }
             }
