@@ -11,6 +11,9 @@ struct MovieDetailLayouts {
         let showingPlayer: Binding<Bool>
         let dismiss: () -> Void
         @EnvironmentObject private var themeManager: ThemeManager
+        @StateObject private var playbackService = PlaybackService.shared
+        @State private var isDownloading = false
+        @State private var downloadError: String?
         
         var body: some View {
             ScrollView {
@@ -69,6 +72,97 @@ struct MovieDetailLayouts {
                             .cornerRadius(12)
                         }
                         .padding(.horizontal, 24)
+                        
+                        // Download Button
+                        if let downloadState = playbackService.getDownloadState(for: item.id) {
+                            switch downloadState.status {
+                            case .downloading:
+                                HStack {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle())
+                                    Text("Downloading... \(Int(downloadState.progress * 100))%")
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(Color.gray.opacity(0.2))
+                                .cornerRadius(12)
+                                .padding(.horizontal, 24)
+                            case .downloaded:
+                                Button(action: {
+                                    Task {
+                                        try? playbackService.deleteDownload(itemId: item.id)
+                                    }
+                                }) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "trash")
+                                        Text("Delete Download")
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(Color.red.opacity(0.8))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(12)
+                                }
+                                .padding(.horizontal, 24)
+                            case .failed(let error):
+                                Button(action: {
+                                    Task {
+                                        isDownloading = true
+                                        do {
+                                            _ = try await playbackService.downloadMovie(item: item)
+                                        } catch {
+                                            downloadError = error.localizedDescription
+                                        }
+                                        isDownloading = false
+                                    }
+                                }) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "arrow.down.circle")
+                                        Text("Retry Download")
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(Color.orange)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(12)
+                                }
+                                .padding(.horizontal, 24)
+                                .disabled(isDownloading)
+                            default:
+                                EmptyView()
+                            }
+                        } else {
+                            Button(action: {
+                                Task {
+                                    isDownloading = true
+                                    do {
+                                        _ = try await playbackService.downloadMovie(item: item)
+                                    } catch {
+                                        downloadError = error.localizedDescription
+                                    }
+                                    isDownloading = false
+                                }
+                            }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "arrow.down.circle")
+                                    Text("Download")
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(themeManager.currentTheme.accentGradient)
+                                .foregroundColor(.white)
+                                .cornerRadius(12)
+                            }
+                            .padding(.horizontal, 24)
+                            .disabled(isDownloading)
+                        }
+                        
+                        if let error = downloadError {
+                            Text(error)
+                                .foregroundColor(.red)
+                                .font(.caption)
+                                .padding(.horizontal, 24)
+                        }
                         
                         // Overview
                         if let overview = item.overview {

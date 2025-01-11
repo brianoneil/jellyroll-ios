@@ -34,40 +34,52 @@ class PlaybackViewModel: ObservableObject {
         errorMessage = nil
         currentItem = item
         
-        // Configure audio session before playback
-        configureAudioSession()
-        
         do {
-            let url = try await playbackService.getPlaybackURL(for: item)
-            let playerItem = AVPlayerItem(url: url)
-            
-            if player == nil {
-                let newPlayer = AVPlayer(playerItem: playerItem)
-                player = newPlayer
-                cleanupStorage.player = newPlayer
+            // Check if the item is downloaded
+            if let downloadedURL = playbackService.getDownloadedURL(for: item.id) {
+                // Play from local file
+                let asset = AVAsset(url: downloadedURL)
+                let playerItem = AVPlayerItem(asset: asset)
+                await MainActor.run {
+                    player = AVPlayer(playerItem: playerItem)
+                    configureAudioSession()
+                    player?.play()
+                    isPlaying = true
+                }
             } else {
-                player?.replaceCurrentItem(with: playerItem)
+                // Stream from server
+                let streamURL = try await playbackService.getPlaybackURL(for: item)
+                await MainActor.run {
+                    player = AVPlayer(url: streamURL)
+                    configureAudioSession()
+                    player?.play()
+                    isPlaying = true
+                }
             }
             
-            // Set up time observer
-            setupTimeObserver()
+            cleanupStorage.player = player
             
-            // Start playback
-            player?.play()
-            isPlaying = true
-            
-            // If there's a saved position, seek to it
-            if let position = item.playbackPositionTicks {
-                let seconds = Double(position) / 10_000_000
-                await seek(to: seconds)
+            // Observe playback time
+            let interval = CMTime(seconds: 1, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
+            let timeObserver = player?.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
+                guard let self = self else { return }
+                self.currentTime = time.seconds
+                if let duration = self.player?.currentItem?.duration {
+                    self.duration = duration.seconds
+                }
             }
+            cleanupStorage.timeObserver = timeObserver
             
         } catch {
-            errorMessage = "Failed to play video: \(error.localizedDescription)"
-            logger.error("Playback error: \(error)")
+            await MainActor.run {
+                errorMessage = error.localizedDescription
+                logger.error("Playback error: \(error)")
+            }
         }
         
-        isLoading = false
+        await MainActor.run {
+            isLoading = false
+        }
     }
     
     func togglePlayPause() {

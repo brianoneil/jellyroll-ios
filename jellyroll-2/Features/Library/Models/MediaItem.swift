@@ -165,6 +165,52 @@ struct MediaItem: Codable, Identifiable {
         userData = try container.decode(UserData.self, forKey: .userData)
     }
     
+    // Convenience initializer for offline content
+    init(from dictionary: [String: Any]) {
+        self.id = dictionary["Id"] as? String ?? ""
+        self.name = dictionary["Name"] as? String ?? ""
+        self.type = dictionary["Type"] as? String ?? ""
+        self.overview = dictionary["Overview"] as? String
+        self.premiereDate = nil
+        self.productionYear = dictionary["ProductionYear"] as? Int
+        self.communityRating = dictionary["CommunityRating"] as? Double
+        self.officialRating = dictionary["OfficialRating"] as? String
+        self.genres = dictionary["Genres"] as? [String] ?? []
+        self.taglines = dictionary["Tags"] as? [String] ?? []
+        self.imageBlurHashes = dictionary["ImageBlurHashes"] as? [String: [String: String]] ?? [:]
+        self.backdropImageTags = dictionary["BackdropImageTags"] as? [String] ?? []
+        self.imageTags = dictionary["ImageTags"] as? [String: String] ?? [:]
+        
+        self.seriesName = dictionary["SeriesName"] as? String
+        self.seasonName = dictionary["SeasonName"] as? String
+        self.episodeTitle = dictionary["EpisodeTitle"] as? String
+        self.seasonNumber = dictionary["ParentIndexNumber"] as? Int
+        self.episodeNumber = dictionary["IndexNumber"] as? Int
+        self.runTimeTicks = dictionary["RunTimeTicks"] as? Int64
+        
+        self.albumArtist = dictionary["AlbumArtist"] as? String
+        self.artists = dictionary["Artists"] as? [String]
+        self.album = dictionary["Album"] as? String
+        
+        if let userDataDict = dictionary["UserData"] as? [String: Any] {
+            self.userData = UserData(
+                playbackPositionTicks: userDataDict["PlaybackPositionTicks"] as? Int64,
+                playCount: userDataDict["PlayCount"] as? Int ?? 0,
+                isFavorite: userDataDict["IsFavorite"] as? Bool ?? false,
+                played: userDataDict["Played"] as? Bool ?? false,
+                key: userDataDict["Key"] as? String ?? ""
+            )
+        } else {
+            self.userData = UserData(
+                playbackPositionTicks: nil,
+                playCount: 0,
+                isFavorite: false,
+                played: false,
+                key: ""
+            )
+        }
+    }
+    
     var formattedRuntime: String? {
         guard let ticks = runTimeTicks else { return nil }
         let seconds = Double(ticks) / 10_000_000
@@ -232,5 +278,13 @@ struct UserData: Codable {
         case isFavorite = "IsFavorite"
         case played = "Played"
         case key = "Key"
+    }
+    
+    init(playbackPositionTicks: Int64?, playCount: Int, isFavorite: Bool, played: Bool, key: String) {
+        self.playbackPositionTicks = playbackPositionTicks
+        self.playCount = playCount
+        self.isFavorite = isFavorite
+        self.played = played
+        self.key = key
     }
 } 
