@@ -64,7 +64,7 @@ struct DownloadsView: View {
                                 HStack {
                                     Button(action: {
                                         // Play downloaded movie
-                                        if let url = downloadState.localURL {
+                                        if case .downloaded = downloadState.status {
                                             selectedItem = createOfflineMediaItem(id: itemId)
                                             showingPlayer = true
                                         }

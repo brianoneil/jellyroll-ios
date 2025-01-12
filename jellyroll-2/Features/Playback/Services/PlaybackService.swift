@@ -16,7 +16,13 @@ class PlaybackService: NSObject, ObservableObject {
     private let authService = AuthenticationService.shared
     private let logger = Logger(subsystem: "com.jellyroll.app", category: "PlaybackService")
     
-    @Published private(set) var activeDownloads: [String: DownloadState] = [:]
+    @Published private(set) var activeDownloads: [String: DownloadState] = [:] {
+        didSet {
+            Task { @MainActor in
+                self.saveDownloadStates()
+            }
+        }
+    }
     private var downloadTasks: [URLSessionDownloadTask: String] = [:]
     private var downloadContinuations: [String: CheckedContinuation<URL, Error>] = [:]
     private var processingTasks: Set<Int> = []
@@ -32,19 +38,181 @@ class PlaybackService: NSObject, ObservableObject {
     
     private override init() {
         super.init()
+        loadDownloadStates()
     }
     
-    struct DownloadState {
+    struct DownloadState: Codable {
         var progress: Double
         var status: DownloadStatus
         var localURL: URL?
+        
+        enum CodingKeys: String, CodingKey {
+            case progress
+            case status
+            case localURL
+        }
+        
+        init(progress: Double, status: DownloadStatus, localURL: URL? = nil) {
+            self.progress = progress
+            self.status = status
+            self.localURL = localURL
+        }
+        
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            progress = try container.decode(Double.self, forKey: .progress)
+            status = try container.decode(DownloadStatus.self, forKey: .status)
+            if let relativePath = try container.decodeIfPresent(String.self, forKey: .localURL) {
+                // Convert relative path to absolute URL
+                if let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+                    localURL = documentsURL.appendingPathComponent(relativePath)
+                }
+            }
+        }
+        
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(progress, forKey: .progress)
+            try container.encode(status, forKey: .status)
+            if let url = localURL,
+               let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+                // Store relative path from Documents directory
+                let relativePath = url.path.replacingOccurrences(of: documentsURL.path + "/", with: "")
+                try container.encode(relativePath, forKey: .localURL)
+            }
+        }
     }
     
-    enum DownloadStatus {
+    enum DownloadStatus: Codable, Equatable {
         case notDownloaded
         case downloading
         case downloaded
-        case failed(Error)
+        case failed(String)
+        
+        enum CodingKeys: String, CodingKey {
+            case type
+            case errorMessage
+        }
+        
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            let type = try container.decode(String.self, forKey: .type)
+            switch type {
+            case "notDownloaded":
+                self = .notDownloaded
+            case "downloading":
+                self = .downloading
+            case "downloaded":
+                self = .downloaded
+            case "failed":
+                let message = try container.decode(String.self, forKey: .errorMessage)
+                self = .failed(message)
+            default:
+                self = .notDownloaded
+            }
+        }
+        
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            switch self {
+            case .notDownloaded:
+                try container.encode("notDownloaded", forKey: .type)
+            case .downloading:
+                try container.encode("downloading", forKey: .type)
+            case .downloaded:
+                try container.encode("downloaded", forKey: .type)
+            case .failed(let message):
+                try container.encode("failed", forKey: .type)
+                try container.encode(message, forKey: .errorMessage)
+            }
+        }
+        
+        static func == (lhs: DownloadStatus, rhs: DownloadStatus) -> Bool {
+            switch (lhs, rhs) {
+            case (.notDownloaded, .notDownloaded):
+                return true
+            case (.downloading, .downloading):
+                return true
+            case (.downloaded, .downloaded):
+                return true
+            case (.failed(let lhsMessage), .failed(let rhsMessage)):
+                return lhsMessage == rhsMessage
+            default:
+                return false
+            }
+        }
+    }
+    
+    private func saveDownloadStates() {
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            let data = try encoder.encode(self.activeDownloads)
+            UserDefaults.standard.set(data, forKey: "downloadStates")
+            UserDefaults.standard.synchronize()  // Force immediate save
+            self.logger.debug("Saved \(self.activeDownloads.count) download states")
+            
+            // Log the current states for debugging
+            if let jsonString = String(data: data, encoding: .utf8) {
+                self.logger.debug("Saved JSON: \(jsonString)")
+            }
+            
+            for (itemId, state) in self.activeDownloads {
+                self.logger.debug("State for \(itemId): status=\(String(describing: state.status)), url=\(state.localURL?.path ?? "nil")")
+            }
+        } catch {
+            self.logger.error("Failed to save download states: \(error.localizedDescription)")
+        }
+    }
+    
+    private func loadDownloadStates() {
+        guard let data = UserDefaults.standard.data(forKey: "downloadStates") else { 
+            self.logger.debug("No saved download states found")
+            return 
+        }
+        
+        // Log the raw data for debugging
+        if let jsonString = String(data: data, encoding: .utf8) {
+            self.logger.debug("Loading JSON: \(jsonString)")
+        }
+        
+        do {
+            let decoder = JSONDecoder()
+            var states = try decoder.decode([String: DownloadState].self, from: data)
+            self.logger.debug("Loaded \(states.count) download states")
+            
+            let fileManager = FileManager.default
+            guard let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                self.logger.error("Could not access Documents directory")
+                return
+            }
+            let downloadsURL = documentsURL.appendingPathComponent("Downloads", isDirectory: true)
+            
+            // Process each state
+            var newStates: [String: DownloadState] = [:]
+            for (itemId, state) in states {
+                // Check if the file exists for this state
+                let expectedPath = downloadsURL.appendingPathComponent("\(itemId).mp4")
+                let fileExists = fileManager.fileExists(atPath: expectedPath.path)
+                self.logger.debug("Checking file at \(expectedPath.path): exists=\(fileExists)")
+                
+                if fileExists {
+                    // If the file exists, mark it as downloaded regardless of previous state
+                    self.logger.debug("File exists, marking as downloaded")
+                    newStates[itemId] = DownloadState(progress: 1.0, status: .downloaded, localURL: expectedPath)
+                } else {
+                    // If the file doesn't exist, mark as not downloaded
+                    self.logger.debug("File does not exist, marking as not downloaded")
+                    newStates[itemId] = DownloadState(progress: 0, status: .notDownloaded)
+                }
+            }
+            
+            self.logger.debug("Final state count after validation: \(newStates.count)")
+            self.activeDownloads = newStates
+        } catch {
+            self.logger.error("Failed to load download states: \(error.localizedDescription)")
+            self.activeDownloads = [:]
+        }
     }
     
     func getPlaybackURL(for item: MediaItem) async throws -> URL {
@@ -130,17 +298,17 @@ class PlaybackService: NSObject, ObservableObject {
     }
     
     func downloadMovie(item: MediaItem) async throws -> URL {
-        logger.debug("Starting download for item: \(item.id) - \(item.name)")
+        self.logger.debug("Starting download for item: \(item.id) - \(item.name)")
         
         guard let config = try? authService.getServerConfiguration(),
               let token = try? authService.getCurrentToken() else {
-            logger.error("Failed to get server configuration or token")
+            self.logger.error("Failed to get server configuration or token")
             throw PlaybackError.invalidToken
         }
         
         let urlString = config.baseURLString.trimmingCharacters(in: .whitespaces)
         guard let baseURL = URL(string: urlString) else {
-            logger.error("Invalid base URL: \(urlString)")
+            self.logger.error("Invalid base URL: \(urlString)")
             throw PlaybackError.invalidURL
         }
         
@@ -160,11 +328,11 @@ class PlaybackService: NSObject, ObservableObject {
         ]
         
         guard let finalURL = components.url else {
-            logger.error("Failed to create final URL from components")
+            self.logger.error("Failed to create final URL from components")
             throw PlaybackError.invalidURL
         }
         
-        logger.debug("Download URL: \(finalURL.absoluteString)")
+        self.logger.debug("Download URL: \(finalURL.absoluteString)")
         
         var request = URLRequest(url: finalURL)
         request.setValue("Bearer \(token.accessToken)", forHTTPHeaderField: "Authorization")
@@ -175,25 +343,25 @@ class PlaybackService: NSObject, ObservableObject {
         let downloadsURL = try fileManager.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
             .appendingPathComponent("Downloads", isDirectory: true)
         
-        logger.debug("Downloads directory path: \(downloadsURL.path)")
+        self.logger.debug("Downloads directory path: \(downloadsURL.path)")
         
         do {
             try fileManager.createDirectory(at: downloadsURL, withIntermediateDirectories: true)
-            logger.debug("Successfully created/verified Downloads directory")
+            self.logger.debug("Successfully created/verified Downloads directory")
         } catch {
-            logger.error("Failed to create Downloads directory: \(error.localizedDescription)")
+            self.logger.error("Failed to create Downloads directory: \(error.localizedDescription)")
         }
         
         // Start download task
-        activeDownloads[item.id] = DownloadState(progress: 0, status: .downloading)
-        logger.debug("Starting download task for item: \(item.id)")
+        self.activeDownloads[item.id] = DownloadState(progress: 0, status: .downloading)
+        self.logger.debug("Starting download task for item: \(item.id)")
         
         return try await withCheckedThrowingContinuation { continuation in
             let task = downloadSession.downloadTask(with: request)
             downloadTasks[task] = item.id
             downloadContinuations[item.id] = continuation
             task.resume()
-            logger.debug("Download task started with identifier: \(task.taskIdentifier)")
+            self.logger.debug("Download task started with identifier: \(task.taskIdentifier)")
         }
     }
     
@@ -231,125 +399,141 @@ extension PlaybackService: URLSessionDownloadDelegate {
         do {
             try fileManager.copyItem(at: location, to: tempFile)
         } catch {
-            logger.error("[Download] Failed to copy temporary file: \(error)")
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                self.logger.error("[Download] Failed to copy temporary file: \(error)")
+            }
             return
         }
         
         // Now proceed with async operations using our safely copied file
         Task { @MainActor [weak self] in
-            logger.debug("[Download] Starting download completion process")
+            guard let self = self else { return }
+            self.logger.debug("[Download] Starting download completion process")
             
-            guard let self = self,
-                  let itemId = self.getItemId(for: downloadTask) else {
-                logger.error("[Download] Failed to get itemId for task: \(downloadTask.taskIdentifier)")
+            guard let itemId = self.getItemId(for: downloadTask) else {
+                self.logger.error("[Download] Failed to get itemId for task: \(downloadTask.taskIdentifier)")
                 try? fileManager.removeItem(at: tempFile)
                 return
             }
             
             self.processingTasks.insert(downloadTask.taskIdentifier)
             
-            logger.debug("[Download] Processing item: \(itemId)")
-            logger.debug("[Download] Temporary file location: \(tempFile.path)")
+            self.logger.debug("[Download] Processing item: \(itemId)")
+            self.logger.debug("[Download] Temporary file location: \(tempFile.path)")
             
             do {
-                logger.debug("[Files] Starting file operations")
+                self.logger.debug("[Files] Starting file operations")
                 
                 // Get the app's Documents directory
                 guard let documentsPath = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
-                    logger.error("[Files] Could not access Documents directory")
+                    self.logger.error("[Files] Could not access Documents directory")
                     throw PlaybackError.downloadError("Could not access Documents directory")
                 }
                 
-                logger.debug("[Files] Documents path: \(documentsPath.path)")
+                self.logger.debug("[Files] Documents path: \(documentsPath.path)")
                 
                 // Create downloads directory
                 let downloadsPath = documentsPath.appendingPathComponent("Downloads", isDirectory: true)
-                logger.debug("[Files] Downloads path: \(downloadsPath.path)")
+                self.logger.debug("[Files] Downloads path: \(downloadsPath.path)")
                 
                 // Create the directory if it doesn't exist
                 do {
-                    logger.debug("[Files] Creating Downloads directory")
+                    self.logger.debug("[Files] Creating Downloads directory")
                     try fileManager.createDirectory(at: downloadsPath, withIntermediateDirectories: true, attributes: nil)
-                    logger.debug("[Files] Downloads directory ready")
+                    self.logger.debug("[Files] Downloads directory ready")
                 } catch {
-                    logger.error("[Files] Failed to create Downloads directory: \(error.localizedDescription)")
+                    self.logger.error("[Files] Failed to create Downloads directory: \(error.localizedDescription)")
                     throw PlaybackError.downloadError("Failed to create Downloads directory: \(error.localizedDescription)")
                 }
                 
                 // Create the destination URL
                 let destinationURL = downloadsPath.appendingPathComponent("\(itemId).mp4")
-                logger.debug("[Files] Target path: \(destinationURL.path)")
+                self.logger.debug("[Files] Target path: \(destinationURL.path)")
                 
                 // Handle existing file
                 if fileManager.fileExists(atPath: destinationURL.path) {
-                    logger.debug("[Files] Removing existing file")
+                    self.logger.debug("[Files] Removing existing file")
                     do {
                         try fileManager.removeItem(at: destinationURL)
-                        logger.debug("[Files] Existing file removed")
+                        self.logger.debug("[Files] Existing file removed")
                     } catch {
-                        logger.error("[Files] Failed to remove existing file: \(error.localizedDescription)")
+                        self.logger.error("[Files] Failed to remove existing file: \(error.localizedDescription)")
                         throw PlaybackError.downloadError("Failed to remove existing file: \(error.localizedDescription)")
                     }
                 }
                 
                 // Move file from our temporary location to final destination
                 do {
-                    logger.debug("[Files] Starting file move")
-                    logger.debug("[Files] Checking temporary file at: \(tempFile.path)")
-                    logger.debug("[Files] Temporary file exists: \(fileManager.fileExists(atPath: tempFile.path))")
+                    self.logger.debug("[Files] Starting file move")
+                    self.logger.debug("[Files] Checking temporary file at: \(tempFile.path)")
+                    self.logger.debug("[Files] Temporary file exists: \(fileManager.fileExists(atPath: tempFile.path))")
                     
                     if let sourceAttrs = try? fileManager.attributesOfItem(atPath: tempFile.path) {
                         let sourceSize = sourceAttrs[.size] as? UInt64 ?? 0
-                        logger.debug("[Files] Source file size: \(sourceSize) bytes")
+                        self.logger.debug("[Files] Source file size: \(sourceSize) bytes")
                     }
                     
                     try fileManager.moveItem(at: tempFile, to: destinationURL)
-                    logger.debug("[Files] File move completed")
+                    self.logger.debug("[Files] File move completed")
                     
                     if let destAttrs = try? fileManager.attributesOfItem(atPath: destinationURL.path) {
                         let destSize = destAttrs[.size] as? UInt64 ?? 0
-                        logger.debug("[Files] Destination file size: \(destSize) bytes")
+                        self.logger.debug("[Files] Destination file size: \(destSize) bytes")
                     }
                 } catch {
-                    logger.error("[Files] Move failed: \(error.localizedDescription)")
+                    self.logger.error("[Files] Move failed: \(error.localizedDescription)")
                     throw PlaybackError.downloadError("Failed to move downloaded file: \(error.localizedDescription)")
                 }
                 
                 // Verify file
-                logger.debug("[Files] Verifying file")
+                self.logger.debug("[Files] Verifying file")
                 guard fileManager.fileExists(atPath: destinationURL.path),
                       let attributes = try? fileManager.attributesOfItem(atPath: destinationURL.path),
                       let fileSize = attributes[.size] as? UInt64,
                       fileSize > 0 else {
-                    logger.error("[Files] Verification failed")
-                    logger.error("[Files] File exists: \(fileManager.fileExists(atPath: destinationURL.path))")
+                    self.logger.error("[Files] Verification failed")
+                    self.logger.error("[Files] File exists: \(fileManager.fileExists(atPath: destinationURL.path))")
                     if let attrs = try? fileManager.attributesOfItem(atPath: destinationURL.path) {
-                        logger.error("[Files] File size: \(attrs[.size] as? UInt64 ?? 0) bytes")
+                        self.logger.error("[Files] File size: \(attrs[.size] as? UInt64 ?? 0) bytes")
                     }
                     throw PlaybackError.downloadError("File verification failed - file may be empty or corrupted")
                 }
                 
-                logger.debug("[Files] Verification successful - size: \(fileSize) bytes")
+                self.logger.debug("[Files] Verification successful - size: \(fileSize) bytes")
                 
                 // Update state
-                logger.debug("[Download] Updating download state")
+                self.logger.debug("[Download] Updating download state")
                 self.activeDownloads[itemId] = DownloadState(progress: 1.0, status: .downloaded, localURL: destinationURL)
                 self.downloadContinuations[itemId]?.resume(returning: destinationURL)
                 self.downloadTasks.removeValue(forKey: downloadTask)
                 self.downloadContinuations.removeValue(forKey: itemId)
                 
-                logger.debug("[Download] Process completed successfully")
+                self.logger.debug("[Download] Process completed successfully")
             } catch {
-                logger.error("[Download] Error: \(error.localizedDescription)")
+                self.logger.error("[Download] Error: \(error.localizedDescription)")
                 if let playbackError = error as? PlaybackError {
-                    logger.error("[Download] PlaybackError: \(String(describing: playbackError))")
-                    self.activeDownloads[itemId] = DownloadState(progress: 0, status: .failed(playbackError))
+                    self.logger.error("[Download] PlaybackError: \(String(describing: playbackError))")
+                    let errorMessage: String
+                    switch playbackError {
+                    case .downloadError(let message):
+                        errorMessage = message
+                    case .invalidToken:
+                        errorMessage = "Invalid token"
+                    case .networkError(let err):
+                        errorMessage = err.localizedDescription
+                    case .serverError(let message):
+                        errorMessage = message
+                    case .invalidURL:
+                        errorMessage = "Invalid URL"
+                    }
+                    self.activeDownloads[itemId] = DownloadState(progress: 0, status: .failed(errorMessage))
                     self.downloadContinuations[itemId]?.resume(throwing: playbackError)
                 } else {
-                    logger.error("[Download] System error: \(error)")
-                    let wrappedError = PlaybackError.downloadError(error.localizedDescription)
-                    self.activeDownloads[itemId] = DownloadState(progress: 0, status: .failed(wrappedError))
-                    self.downloadContinuations[itemId]?.resume(throwing: wrappedError)
+                    self.logger.error("[Download] System error: \(error)")
+                    let errorMessage = error.localizedDescription
+                    self.activeDownloads[itemId] = DownloadState(progress: 0, status: .failed(errorMessage))
+                    self.downloadContinuations[itemId]?.resume(throwing: PlaybackError.downloadError(errorMessage))
                 }
                 self.downloadTasks.removeValue(forKey: downloadTask)
                 self.downloadContinuations.removeValue(forKey: itemId)
@@ -365,7 +549,7 @@ extension PlaybackService: URLSessionDownloadDelegate {
                   let itemId = self.getItemId(for: downloadTask) else { return }
             
             let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
-            logger.debug("Download progress for \(itemId): \(Int(progress * 100))% (\(totalBytesWritten)/\(totalBytesExpectedToWrite) bytes)")
+            self.logger.debug("Download progress for \(itemId): \(Int(progress * 100))% (\(totalBytesWritten)/\(totalBytesExpectedToWrite) bytes)")
             
             if var state = self.activeDownloads[itemId] {
                 state.progress = progress
@@ -383,24 +567,24 @@ extension PlaybackService: URLSessionDownloadDelegate {
             // Wait for any ongoing processing to complete
             while self.processingTasks.contains(downloadTask.taskIdentifier) {
                 try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
-                logger.debug("[Download] Waiting for processing to complete for task \(downloadTask.taskIdentifier)")
+                self.logger.debug("[Download] Waiting for processing to complete for task \(downloadTask.taskIdentifier)")
             }
             
             if let error = error {
-                logger.error("Download task \(downloadTask.taskIdentifier) failed with error: \(error.localizedDescription)")
-                logger.error("URLSession error type: \(type(of: error))")
-                logger.error("Full error details: \(error)")
+                self.logger.error("Download task \(downloadTask.taskIdentifier) failed with error: \(error.localizedDescription)")
+                self.logger.error("URLSession error type: \(type(of: error))")
+                self.logger.error("Full error details: \(error)")
                 
                 guard let itemId = self.getItemId(for: downloadTask) else { return }
                 
                 let wrappedError = PlaybackError.downloadError("URLSession error: \(error.localizedDescription)")
-                logger.error("Creating wrapped error for item \(itemId)")
-                self.activeDownloads[itemId] = DownloadState(progress: 0, status: .failed(wrappedError))
+                self.logger.error("Creating wrapped error for item \(itemId)")
+                self.activeDownloads[itemId] = DownloadState(progress: 0, status: .failed(error.localizedDescription))
                 self.downloadContinuations[itemId]?.resume(throwing: wrappedError)
                 self.downloadTasks.removeValue(forKey: downloadTask)
                 self.downloadContinuations.removeValue(forKey: itemId)
             } else {
-                logger.debug("Download task \(downloadTask.taskIdentifier) completed successfully")
+                self.logger.debug("Download task \(downloadTask.taskIdentifier) completed successfully")
             }
         }
     }

@@ -38,7 +38,7 @@ class PlaybackViewModel: ObservableObject {
             // Check if the item is downloaded
             if let downloadedURL = playbackService.getDownloadedURL(for: item.id) {
                 // Play from local file
-                let asset = AVAsset(url: downloadedURL)
+                let asset = AVURLAsset(url: downloadedURL)
                 let playerItem = AVPlayerItem(asset: asset)
                 await MainActor.run {
                     player = AVPlayer(playerItem: playerItem)
@@ -49,8 +49,10 @@ class PlaybackViewModel: ObservableObject {
             } else {
                 // Stream from server
                 let streamURL = try await playbackService.getPlaybackURL(for: item)
+                let asset = AVURLAsset(url: streamURL)
+                let playerItem = AVPlayerItem(asset: asset)
                 await MainActor.run {
-                    player = AVPlayer(url: streamURL)
+                    player = AVPlayer(playerItem: playerItem)
                     configureAudioSession()
                     player?.play()
                     isPlaying = true
@@ -63,9 +65,11 @@ class PlaybackViewModel: ObservableObject {
             let interval = CMTime(seconds: 1, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
             let timeObserver = player?.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
                 guard let self = self else { return }
-                self.currentTime = time.seconds
-                if let duration = self.player?.currentItem?.duration {
-                    self.duration = duration.seconds
+                Task { @MainActor in
+                    self.currentTime = time.seconds
+                    if let duration = self.player?.currentItem?.duration.seconds {
+                        self.duration = duration
+                    }
                 }
             }
             cleanupStorage.timeObserver = timeObserver
