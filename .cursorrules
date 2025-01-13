@@ -1,0 +1,85 @@
+# Development Guidelines
+
+## General Rules
+- Do not change functionality of the application without updating the product requirements document
+- When fixing errors, only focus and don't change the functionality of the application
+
+## Code Quality Standards
+- Expert-level Swift and SwiftUI development
+- Maintainable and clean code practices
+- Focus on latest documentation (August/September 2024)
+- Concise descriptions
+- Preserve all comments
+- Create new files for new components and views
+
+## Project Structure
+
+Always create and update change in the project following the following structure:
+├── jellyroll-2                           # Main application directory
+│   ├── Assets.xcassets                   # App assets including icons and colors
+│   │   ├── AccentColor.colorset         # Custom accent color definition
+│   │   ├── AppIcon.appiconset          # Application icon in various sizes
+│   │   └── Contents.json               # Asset catalog configuration
+│   ├── ContentView.swift                 # Root view of the application
+│   ├── Features                          # Feature-based module organization
+│   │   ├── Auth                        # Authentication and user management
+│   │   ├── Home                        # Home screen and dashboard
+│   │   ├── Library                     # Media library browsing and management
+│   │   ├── Playback                    # Media playback functionality
+│   │   ├── Settings                    # App settings and configuration
+│   │   └── Shared                      # Shared components and utilities
+│   ├── Item.swift                        # Core data model for media items
+│   ├── Preview Content                   # SwiftUI preview assets
+│   │   └── Preview Assets.xcassets     # Preview-specific assets
+│   ├── Theme                             # Theming and styling system
+│   │   ├── BlurHash.swift             # Image placeholder blur implementation
+│   │   ├── JellyfinTheme.swift        # Theme definitions and colors
+│   │   ├── Layout                      # Layout management and constraints
+│   │   └── ThemeManager.swift         # Theme state management
+│   ├── jellyroll_2.entitlements          # App capabilities and permissions
+│   └── jellyroll_2App.swift              # App entry point and lifecycle
+├── jellyroll-2.xcodeproj                 # Xcode project configuration
+│   ├── project.pbxproj                  # Project build settings
+│   ├── project.xcworkspace              # Workspace settings
+│   │   └── contents.xcworkspacedata    # Workspace configuration
+│   └── xcuserdata                       # User-specific settings
+│       └── boneil.xcuserdatad          # Personal IDE preferences
+├── jellyroll-2Tests                      # Unit tests directory
+│   └── jellyroll_2Tests.swift          # Application unit tests
+├── jellyroll-2UITests                    # UI tests directory
+│   ├── jellyroll_2UITests.swift        # UI automation tests
+│   └── jellyroll_2UITestsLaunchTests.swift  # Launch performance tests
+├── product-info                          # Product documentation
+│   ├── prd.md                          # Product requirements document
+│   └── working-features.md             # Current feature implementation status
+└── readme.md                             # Project overview and setup instructions
+
+
+
+## SwiftUI UI Design Rules
+
+### 1. Built-in Components
+- Use native UI elements (List, NavigationView, TabView, SF Symbols)
+- Maintain iOS-consistent look and feel
+
+### 2. Layout Tools
+- Utilize VStack, HStack, ZStack
+- Implement Spacer and Padding
+- Use LazyVGrid/LazyHGrid for grid layouts
+- GeometryReader for dynamic layouts
+
+### 3. Visual Enhancement
+- Apply shadows, gradients, and blurs
+- Create custom shapes
+- Implement smooth transitions with .animation()
+
+### 4. Interactive Design
+- Implement gestures (swipes, long presses)
+- Add haptic feedback
+- Ensure clear navigation
+- Create responsive UI elements
+
+## Project Specific Rules
+- Always use the ThemeManager to manage colors and gradients in the application
+- Always use the LayoutManager to manage the layout of the views and components in the application
+
