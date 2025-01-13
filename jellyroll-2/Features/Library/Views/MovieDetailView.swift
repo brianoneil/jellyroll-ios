@@ -54,7 +54,7 @@ struct MovieDetailView: View {
         }
         .navigationBarHidden(true)
         .fullScreenCover(isPresented: $showingPlayer) {
-            VideoPlayerView(item: item)
+            VideoPlayerView(item: item, startTime: item.userData.playbackPositionTicks.map { Double($0) / 10_000_000 })
         }
     }
 } 

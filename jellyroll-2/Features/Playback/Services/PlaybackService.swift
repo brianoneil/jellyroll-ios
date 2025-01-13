@@ -178,7 +178,7 @@ class PlaybackService: NSObject, ObservableObject {
         
         do {
             let decoder = JSONDecoder()
-            var states = try decoder.decode([String: DownloadState].self, from: data)
+            let states = try decoder.decode([String: DownloadState].self, from: data)
             self.logger.debug("Loaded \(states.count) download states")
             
             let fileManager = FileManager.default
@@ -190,7 +190,7 @@ class PlaybackService: NSObject, ObservableObject {
             
             // Process each state
             var newStates: [String: DownloadState] = [:]
-            for (itemId, state) in states {
+            for (itemId, _) in states {
                 // Check if the file exists for this state
                 let expectedPath = downloadsURL.appendingPathComponent("\(itemId).mp4")
                 let fileExists = fileManager.fileExists(atPath: expectedPath.path)
@@ -338,19 +338,9 @@ class PlaybackService: NSObject, ObservableObject {
         request.setValue("Bearer \(token.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue(token.accessToken, forHTTPHeaderField: "X-MediaBrowser-Token")
         
-        // Create downloads directory
-        let fileManager = FileManager.default
-        let downloadsURL = try fileManager.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-            .appendingPathComponent("Downloads", isDirectory: true)
-        
+        // Get downloads directory
+        let downloadsURL = try getDownloadsDirectory()
         self.logger.debug("Downloads directory path: \(downloadsURL.path)")
-        
-        do {
-            try fileManager.createDirectory(at: downloadsURL, withIntermediateDirectories: true)
-            self.logger.debug("Successfully created/verified Downloads directory")
-        } catch {
-            self.logger.error("Failed to create Downloads directory: \(error.localizedDescription)")
-        }
         
         // Start download task
         self.activeDownloads[item.id] = DownloadState(progress: 0, status: .downloading)
@@ -379,8 +369,69 @@ class PlaybackService: NSObject, ObservableObject {
         activeDownloads[itemId] = nil
     }
     
+    private func getDownloadsDirectory() throws -> URL {
+        let fileManager = FileManager.default
+        guard let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            throw PlaybackError.downloadError("Could not access Documents directory")
+        }
+        
+        let downloadsURL = documentsURL.appendingPathComponent("Downloads", isDirectory: true)
+        
+        // Create directory if it doesn't exist
+        if !fileManager.fileExists(atPath: downloadsURL.path) {
+            try fileManager.createDirectory(at: downloadsURL, withIntermediateDirectories: true, attributes: nil)
+            
+            // Add a .nomedia file to prevent media scanning
+            let noMediaURL = downloadsURL.appendingPathComponent(".nomedia")
+            if !fileManager.fileExists(atPath: noMediaURL.path) {
+                try Data().write(to: noMediaURL)
+            }
+            
+            // Set directory to be excluded from backup
+            var urlToExclude = downloadsURL
+            var resourceValues = URLResourceValues()
+            resourceValues.isExcludedFromBackup = true
+            try urlToExclude.setResourceValues(resourceValues)
+        }
+        
+        return downloadsURL
+    }
+    
     func getDownloadedURL(for itemId: String) -> URL? {
-        return activeDownloads[itemId]?.localURL
+        guard let state = activeDownloads[itemId],
+              case .downloaded = state.status,
+              let localURL = state.localURL,
+              FileManager.default.fileExists(atPath: localURL.path),
+              FileManager.default.isReadableFile(atPath: localURL.path) else {
+            return nil
+        }
+        return localURL
+    }
+    
+    func cancelDownload(itemId: String) {
+        self.logger.debug("Cancelling download for item: \(itemId)")
+        
+        // Find and cancel the download task
+        if let task = downloadTasks.first(where: { $0.value == itemId })?.key {
+            task.cancel()
+            downloadTasks.removeValue(forKey: task)
+        }
+        
+        // Create a temporary URL for cancellation
+        if let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+            let tempURL = documentsPath.appendingPathComponent("cancelled")
+            // Resume with a dummy URL to complete the async operation without error
+            downloadContinuations[itemId]?.resume(returning: tempURL)
+        }
+        downloadContinuations.removeValue(forKey: itemId)
+        
+        // Remove the download state completely
+        activeDownloads.removeValue(forKey: itemId)
+        
+        // Clean up any processing tasks
+        processingTasks.removeAll()
+        
+        self.logger.debug("Download cancelled for item: \(itemId)")
     }
     
     private func getItemId(for task: URLSessionDownloadTask) -> String? {
@@ -400,7 +451,7 @@ extension PlaybackService: URLSessionDownloadDelegate {
             try fileManager.copyItem(at: location, to: tempFile)
         } catch {
             Task { @MainActor [weak self] in
-                guard let self = self else { return }
+                guard let self else { return }
                 self.logger.error("[Download] Failed to copy temporary file: \(error)")
             }
             return
@@ -408,11 +459,18 @@ extension PlaybackService: URLSessionDownloadDelegate {
         
         // Now proceed with async operations using our safely copied file
         Task { @MainActor [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
             self.logger.debug("[Download] Starting download completion process")
             
             guard let itemId = self.getItemId(for: downloadTask) else {
                 self.logger.error("[Download] Failed to get itemId for task: \(downloadTask.taskIdentifier)")
+                try? fileManager.removeItem(at: tempFile)
+                return
+            }
+            
+            // Check if this task was cancelled
+            if !self.downloadTasks.contains(where: { $0.key == downloadTask }) {
+                self.logger.debug("[Download] Task was cancelled, skipping processing")
                 try? fileManager.removeItem(at: tempFile)
                 return
             }
@@ -545,8 +603,8 @@ extension PlaybackService: URLSessionDownloadDelegate {
     
     nonisolated func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
         Task { @MainActor [weak self] in
-            guard let self = self,
-                  let itemId = self.getItemId(for: downloadTask) else { return }
+            guard let self else { return }
+            guard let itemId = self.getItemId(for: downloadTask) else { return }
             
             let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
             self.logger.debug("Download progress for \(itemId): \(Int(progress * 100))% (\(totalBytesWritten)/\(totalBytesExpectedToWrite) bytes)")
@@ -562,7 +620,7 @@ extension PlaybackService: URLSessionDownloadDelegate {
         guard let downloadTask = task as? URLSessionDownloadTask else { return }
         
         Task { @MainActor [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
             
             // Wait for any ongoing processing to complete
             while self.processingTasks.contains(downloadTask.taskIdentifier) {
@@ -570,12 +628,25 @@ extension PlaybackService: URLSessionDownloadDelegate {
                 self.logger.debug("[Download] Waiting for processing to complete for task \(downloadTask.taskIdentifier)")
             }
             
+            guard let itemId = self.getItemId(for: downloadTask) else { return }
+            
             if let error = error {
+                self.logger.debug("Download task \(downloadTask.taskIdentifier) ended with error: \(error.localizedDescription)")
+                
+                // Check if this was a cancellation
+                let nsError = error as NSError
+                if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+                    self.logger.debug("Download was cancelled by user")
+                    // Don't set any error state for cancellation
+                    self.downloadTasks.removeValue(forKey: downloadTask)
+                    self.downloadContinuations.removeValue(forKey: itemId)
+                    return
+                }
+                
+                // Handle other errors
                 self.logger.error("Download task \(downloadTask.taskIdentifier) failed with error: \(error.localizedDescription)")
                 self.logger.error("URLSession error type: \(type(of: error))")
                 self.logger.error("Full error details: \(error)")
-                
-                guard let itemId = self.getItemId(for: downloadTask) else { return }
                 
                 let wrappedError = PlaybackError.downloadError("URLSession error: \(error.localizedDescription)")
                 self.logger.error("Creating wrapped error for item \(itemId)")

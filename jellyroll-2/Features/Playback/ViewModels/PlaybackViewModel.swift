@@ -22,11 +22,18 @@ class PlaybackViewModel: ObservableObject {
     
     private func configureAudioSession() {
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
-            try AVAudioSession.sharedInstance().setActive(true)
+            let audioSession = AVAudioSession.sharedInstance()
+            try audioSession.setCategory(.playback, mode: .moviePlayback)
+            try audioSession.setActive(true)
         } catch {
             logger.error("Failed to configure audio session: \(error)")
         }
+    }
+    
+    private func configurePlayer(with playerItem: AVPlayerItem) {
+        let player = AVPlayer(playerItem: playerItem)
+        self.player = player
+        cleanupStorage.player = player
     }
     
     func play(item: MediaItem) async {
@@ -38,28 +45,131 @@ class PlaybackViewModel: ObservableObject {
             // Check if the item is downloaded
             if let downloadedURL = playbackService.getDownloadedURL(for: item.id) {
                 // Play from local file
-                let asset = AVURLAsset(url: downloadedURL)
-                let playerItem = AVPlayerItem(asset: asset)
-                await MainActor.run {
-                    player = AVPlayer(playerItem: playerItem)
-                    configureAudioSession()
-                    player?.play()
-                    isPlaying = true
+                self.logger.debug("Playing downloaded file from: \(downloadedURL.path)")
+                
+                // Verify file exists and is readable
+                let fileManager = FileManager.default
+                guard fileManager.fileExists(atPath: downloadedURL.path),
+                      fileManager.isReadableFile(atPath: downloadedURL.path) else {
+                    self.logger.error("Downloaded file not accessible: \(downloadedURL.path)")
+                    throw PlaybackError.downloadError("Downloaded file not accessible")
+                }
+                
+                // Create asset with options for local playback
+                let asset = AVURLAsset(url: downloadedURL, options: [
+                    AVURLAssetPreferPreciseDurationAndTimingKey: true
+                ])
+                
+                // Load essential properties asynchronously
+                do {
+                    if #available(iOS 16.0, *) {
+                        async let playable = try asset.load(.isPlayable)
+                        async let duration = try asset.load(.duration)
+                        async let transform = try asset.load(.preferredTransform)
+                        
+                        // Wait for all properties to load
+                        let (isPlayable, _, _) = try await (playable, duration, transform)
+                        
+                        if !isPlayable {
+                            throw PlaybackError.downloadError("Asset is not playable")
+                        }
+                    } else {
+                        // Fallback for older iOS versions
+                        await withCheckedContinuation { continuation in
+                            asset.loadValuesAsynchronously(forKeys: ["playable", "duration", "preferredTransform"]) {
+                                var error: NSError?
+                                let status = asset.statusOfValue(forKey: "playable", error: &error)
+                                if status == .failed {
+                                    Task { @MainActor in
+                                        self.errorMessage = error?.localizedDescription ?? "Failed to load asset"
+                                    }
+                                }
+                                continuation.resume()
+                            }
+                        }
+                    }
+                    
+                    // Create player item with loaded asset
+                    let playerItem = AVPlayerItem(asset: asset)
+                    
+                    // Configure player on main actor
+                    await MainActor.run {
+                        // Configure audio session for local playback
+                        do {
+                            let audioSession = AVAudioSession.sharedInstance()
+                            try audioSession.setCategory(.playback, mode: .moviePlayback, options: [.allowAirPlay])
+                            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+                        } catch {
+                            logger.error("Failed to configure audio session: \(error)")
+                        }
+                        
+                        // Configure player with more robust settings
+                        let player = AVPlayer(playerItem: playerItem)
+                        player.allowsExternalPlayback = true
+                        player.usesExternalPlaybackWhileExternalScreenIsActive = true
+                        player.volume = 1.0
+                        player.automaticallyWaitsToMinimizeStalling = true
+                        
+                        // Add KVO observers for better error handling
+                        let statusObserver = playerItem.observe(\.status) { [weak self] item, _ in
+                            if item.status == .failed {
+                                self?.logger.error("Player item failed: \(String(describing: item.error))")
+                                Task { @MainActor [weak self] in
+                                    self?.errorMessage = item.error?.localizedDescription ?? "Playback failed"
+                                }
+                            }
+                        }
+                        cleanupStorage.statusObserver = statusObserver
+                        
+                        self.player = player
+                        cleanupStorage.player = player
+                        player.play()
+                        isPlaying = true
+                    }
                 }
             } else {
                 // Stream from server
                 let streamURL = try await playbackService.getPlaybackURL(for: item)
                 let asset = AVURLAsset(url: streamURL)
-                let playerItem = AVPlayerItem(asset: asset)
-                await MainActor.run {
-                    player = AVPlayer(playerItem: playerItem)
-                    configureAudioSession()
-                    player?.play()
-                    isPlaying = true
+                
+                // Load essential properties asynchronously
+                do {
+                    if #available(iOS 16.0, *) {
+                        async let playable = try asset.load(.isPlayable)
+                        async let duration = try asset.load(.duration)
+                        async let transform = try asset.load(.preferredTransform)
+                        
+                        // Wait for all properties to load
+                        let (isPlayable, _, _) = try await (playable, duration, transform)
+                        
+                        if !isPlayable {
+                            throw PlaybackError.serverError("Asset is not playable")
+                        }
+                    } else {
+                        // Fallback for older iOS versions
+                        await withCheckedContinuation { continuation in
+                            asset.loadValuesAsynchronously(forKeys: ["playable", "duration", "preferredTransform"]) {
+                                var error: NSError?
+                                let status = asset.statusOfValue(forKey: "playable", error: &error)
+                                if status == .failed {
+                                    Task { @MainActor in
+                                        self.errorMessage = error?.localizedDescription ?? "Failed to load asset"
+                                    }
+                                }
+                                continuation.resume()
+                            }
+                        }
+                    }
+                    
+                    let playerItem = AVPlayerItem(asset: asset)
+                    await MainActor.run {
+                        configureAudioSession()
+                        configurePlayer(with: playerItem)
+                        player?.play()
+                        isPlaying = true
+                    }
                 }
             }
-            
-            cleanupStorage.player = player
             
             // Observe playback time
             let interval = CMTime(seconds: 1, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
@@ -157,34 +267,21 @@ class PlaybackViewModel: ObservableObject {
     }
     
     deinit {
-        cleanupStorage.cleanup()
+        // CleanupStorage handles cleanup in its own deinit
     }
 }
 
 // Separate class to handle nonisolated cleanup
 private final class CleanupStorage {
-    private let queue = DispatchQueue(label: "com.jellyroll.playback.cleanup")
-    private var _player: AVPlayer?
-    private var _timeObserver: Any?
+    weak var player: AVPlayer?
+    var timeObserver: Any?
+    var statusObserver: NSKeyValueObservation?
     
-    var player: AVPlayer? {
-        get { queue.sync { _player } }
-        set { queue.sync { _player = newValue } }
-    }
-    
-    var timeObserver: Any? {
-        get { queue.sync { _timeObserver } }
-        set { queue.sync { _timeObserver = newValue } }
-    }
-    
-    func cleanup() {
-        queue.sync {
-            if let observer = _timeObserver {
-                _player?.removeTimeObserver(observer)
-            }
-            _player?.pause()
-            _player = nil
-            _timeObserver = nil
+    deinit {
+        if let timeObserver = timeObserver {
+            player?.removeTimeObserver(timeObserver)
         }
+        statusObserver?.invalidate()
+        player = nil
     }
 } 

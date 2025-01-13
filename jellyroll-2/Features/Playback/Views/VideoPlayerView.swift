@@ -3,21 +3,37 @@ import AVKit
 
 struct VideoPlayerView: View {
     let item: MediaItem
+    let startTime: Double?
     @StateObject private var viewModel = PlaybackViewModel()
     @Environment(\.dismiss) private var dismiss
     
+    init(item: MediaItem, startTime: Double? = nil) {
+        self.item = item
+        self.startTime = startTime
+    }
+    
     var body: some View {
-        AVPlayerControllerRepresentable(player: viewModel.player ?? AVPlayer(), dismiss: dismiss)
-            .ignoresSafeArea()
-            .navigationBarHidden(true)
-            .task {
-                await viewModel.play(item: item)
+        Group {
+            if let player = viewModel.player {
+                AVPlayerControllerRepresentable(player: player, dismiss: dismiss)
+                    .ignoresSafeArea()
+            } else {
+                Color.black // Loading placeholder
+                    .ignoresSafeArea()
             }
-            .onDisappear {
-                Task { @MainActor in
-                    await viewModel.cleanup()
-                }
+        }
+        .navigationBarHidden(true)
+        .task {
+            await viewModel.play(item: item)
+            if let startTime = startTime {
+                await viewModel.seek(to: startTime)
             }
+        }
+        .onDisappear {
+            Task { @MainActor in
+                await viewModel.cleanup()
+            }
+        }
     }
 }
 
@@ -34,7 +50,9 @@ struct AVPlayerControllerRepresentable: UIViewControllerRepresentable {
     }
     
     func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
-        uiViewController.player = player
+        if uiViewController.player !== player {
+            uiViewController.player = player
+        }
     }
     
     func makeCoordinator() -> Coordinator {
