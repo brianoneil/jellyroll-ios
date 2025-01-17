@@ -205,8 +205,7 @@ struct MoviesTabView: View {
     @EnvironmentObject private var themeManager: ThemeManager
     
     private var columns: [GridItem] {
-        let columnCount = layoutManager.isLandscape ? 4 : 2
-        return Array(repeating: GridItem(.flexible(), spacing: 16), count: columnCount)
+        Array(repeating: GridItem(.flexible(), spacing: 16), count: layoutManager.gridColumns)
     }
     
     var body: some View {

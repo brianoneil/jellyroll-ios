@@ -32,7 +32,16 @@ struct MovieDetailView: View {
     
     var body: some View {
         Group {
-            if layoutManager.isLandscape {
+            if layoutManager.isPad {
+                MovieDetailLayouts.IPadLayout(
+                    item: item,
+                    hasProgress: hasProgress,
+                    progressPercentage: progressPercentage,
+                    progressText: progressText,
+                    showingPlayer: $showingPlayer,
+                    dismiss: { dismiss() }
+                )
+            } else if layoutManager.isLandscape {
                 MovieDetailLayouts.LandscapeLayout(
                     item: item,
                     hasProgress: hasProgress,

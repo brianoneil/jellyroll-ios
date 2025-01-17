@@ -131,7 +131,7 @@ class LibraryService {
         var components = URLComponents(url: url, resolvingAgainstBaseURL: true)!
         components.queryItems = [
             URLQueryItem(name: "Limit", value: String(limit)),
-            URLQueryItem(name: "Fields", value: "Overview,Genres,Tags,ProductionYear,PremiereDate")
+            URLQueryItem(name: "Fields", value: "Overview,Genres,Tags,ProductionYear,PremiereDate,People")
         ]
         
         var request = URLRequest(url: components.url!)
@@ -155,7 +155,7 @@ class LibraryService {
         var components = URLComponents(url: url, resolvingAgainstBaseURL: true)!
         components.queryItems = [
             URLQueryItem(name: "Limit", value: "10"),
-            URLQueryItem(name: "Fields", value: "Overview,Genres,Tags,ProductionYear,PremiereDate,RunTimeTicks,PlaybackPositionTicks,UserData")
+            URLQueryItem(name: "Fields", value: "Overview,Genres,Tags,ProductionYear,PremiereDate,RunTimeTicks,PlaybackPositionTicks,UserData,People")
         ]
         
         var request = URLRequest(url: components.url!)
@@ -197,7 +197,7 @@ class LibraryService {
         components.queryItems = [
             URLQueryItem(name: "ParentId", value: libraryId),
             URLQueryItem(name: "Limit", value: String(limit)),
-            URLQueryItem(name: "Fields", value: "Overview,Genres,Tags,ProductionYear,PremiereDate,RunTimeTicks,PlaybackPositionTicks"),
+            URLQueryItem(name: "Fields", value: "Overview,Genres,Tags,ProductionYear,PremiereDate,RunTimeTicks,PlaybackPositionTicks,People"),
             URLQueryItem(name: "SortBy", value: "SortName"),
             URLQueryItem(name: "SortOrder", value: "Ascending")
         ]

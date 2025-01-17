@@ -38,6 +38,14 @@ class LayoutManager: ObservableObject {
         horizontalSizeClass == .regular && verticalSizeClass == .regular
     }
     
+    var gridColumns: Int {
+        if isPad {
+            return isLandscape ? 6 : 4  // iPad: 6 columns landscape, 4 portrait
+        } else {
+            return isLandscape ? 4 : 2  // Phone: 4 columns landscape, 2 portrait
+        }
+    }
+    
     deinit {
         NotificationCenter.default.removeObserver(self)
     }

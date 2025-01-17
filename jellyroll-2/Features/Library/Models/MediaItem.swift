@@ -83,6 +83,9 @@ struct MediaItem: Codable, Identifiable {
     let imageTags: [String: String]
     let userData: UserData
     
+    // Cast and Crew
+    let people: [Person]?
+    
     // Series specific
     let seriesName: String?
     let seasonName: String?
@@ -111,6 +114,7 @@ struct MediaItem: Codable, Identifiable {
         case backdropImageTags = "BackdropImageTags"
         case imageTags = "ImageTags"
         case userData = "UserData"
+        case people = "People"
         case seriesName = "SeriesName"
         case seasonName = "SeasonName"
         case episodeTitle = "EpisodeTitle"
@@ -120,6 +124,19 @@ struct MediaItem: Codable, Identifiable {
         case albumArtist = "AlbumArtist"
         case artists = "Artists"
         case album = "Album"
+    }
+    
+    // Helper computed properties for cast and crew
+    var cast: [Person] {
+        people?.filter { $0.type == "Actor" } ?? []
+    }
+    
+    var directors: [Person] {
+        people?.filter { $0.type == "Director" } ?? []
+    }
+    
+    var writers: [Person] {
+        people?.filter { $0.type == "Writer" } ?? []
     }
     
     init(from decoder: Decoder) throws {
@@ -163,6 +180,9 @@ struct MediaItem: Codable, Identifiable {
         album = try container.decodeIfPresent(String.self, forKey: .album)
         
         userData = try container.decode(UserData.self, forKey: .userData)
+        
+        // Make people optional
+        people = try container.decodeIfPresent([Person].self, forKey: .people)
     }
     
     var formattedRuntime: String? {
@@ -217,6 +237,30 @@ struct MediaItem: Codable, Identifiable {
     var playbackPositionTicks: Int64? {
         return userData.playbackPositionTicks
     }
+    
+    var formattedRating: String? {
+        guard let rating = officialRating else { return nil }
+        
+        // List of valid US movie ratings to look for with word boundaries
+        let ratingPatterns = [
+            "\\bG\\b",
+            "\\bPG\\b",
+            "\\bPG-13\\b",
+            "\\bR\\b",
+            "\\bNC-17\\b"
+        ]
+        
+        let upperRating = rating.uppercased()
+        
+        // Try to find any valid rating within the text
+        for pattern in ratingPatterns {
+            if let range = upperRating.range(of: pattern, options: .regularExpression) {
+                return String(upperRating[range])
+            }
+        }
+        
+        return nil
+    }
 }
 
 struct UserData: Codable {
@@ -232,5 +276,29 @@ struct UserData: Codable {
         case isFavorite = "IsFavorite"
         case played = "Played"
         case key = "Key"
+    }
+}
+
+struct ProviderIds: Codable {
+    // Add provider ID fields as needed
+}
+
+struct Person: Codable, Identifiable {
+    let id: String
+    let name: String
+    let role: String?
+    let type: String
+    let primaryImageTag: String?
+    let imageBlurHashes: [String: [String: String]]?
+    let providerIds: ProviderIds?
+    
+    private enum CodingKeys: String, CodingKey {
+        case id = "Id"
+        case name = "Name"
+        case role = "Role"
+        case type = "Type"
+        case primaryImageTag = "PrimaryImageTag"
+        case imageBlurHashes = "ImageBlurHashes"
+        case providerIds = "ProviderIds"
     }
 } 

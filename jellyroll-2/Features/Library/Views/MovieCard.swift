@@ -177,10 +177,8 @@ struct MovieCard: View {
                 VideoPlayerView(item: item)
             }
         }
-        .sheet(isPresented: $showingDetail) {
-            NavigationView {
-                MovieDetailView(item: item)
-            }
+        .fullScreenCover(isPresented: $showingDetail) {
+            MovieDetailView(item: item)
         }
     }
 } 
