@@ -45,3 +45,4 @@ A minimal viable product (MVP) client application for streaming media content fr
 - Successful offline downloads
 - Basic search functionality working
 - Stable connection to Jellyfin server
+
