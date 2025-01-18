@@ -54,11 +54,10 @@ struct SettingsView: View {
                                 .foregroundColor(themeManager.currentTheme.primaryTextColor)
                             Spacer()
                             HStack(spacing: 12) {
+                                // Light theme button
                                 Button {
-                                    print("Light theme button tapped")
                                     withAnimation {
                                         themeManager.setTheme(.light)
-                                        print("Theme set to light, current theme: \(themeManager.currentThemeType)")
                                     }
                                 } label: {
                                     ZStack {
@@ -73,19 +72,17 @@ struct SettingsView: View {
                                                         lineWidth: 2)
                                             )
                                             .frame(width: 32, height: 32)
-                                        
                                         Image(systemName: "sun.max.fill")
-                                            .font(.system(size: 20))
-                                            .foregroundColor(.orange)
+                                            .font(.system(size: 16))
+                                            .foregroundColor(themeManager.currentTheme.primaryTextColor)
                                     }
                                 }
                                 .buttonStyle(.plain)
                                 
+                                // Dark theme button
                                 Button {
-                                    print("Dark theme button tapped")
                                     withAnimation {
                                         themeManager.setTheme(.dark)
-                                        print("Theme set to dark, current theme: \(themeManager.currentThemeType)")
                                     }
                                 } label: {
                                     ZStack {
@@ -100,10 +97,34 @@ struct SettingsView: View {
                                                         lineWidth: 2)
                                             )
                                             .frame(width: 32, height: 32)
-                                        
                                         Image(systemName: "moon.fill")
-                                            .font(.system(size: 20))
-                                            .foregroundColor(.indigo)
+                                            .font(.system(size: 16))
+                                            .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                                
+                                // Blackberry theme button
+                                Button {
+                                    withAnimation {
+                                        themeManager.setTheme(.blackberry)
+                                    }
+                                } label: {
+                                    ZStack {
+                                        Circle()
+                                            .fill(themeManager.currentThemeType == .blackberry ? 
+                                                themeManager.currentTheme.accentColor.opacity(0.2) : 
+                                                themeManager.currentTheme.surfaceColor)
+                                            .overlay(
+                                                Circle()
+                                                    .stroke(themeManager.currentThemeType == .blackberry ? 
+                                                        themeManager.currentTheme.accentColor : .clear, 
+                                                        lineWidth: 2)
+                                            )
+                                            .frame(width: 32, height: 32)
+                                        Image(systemName: "circle.hexagongrid.fill")
+                                            .font(.system(size: 16))
+                                            .foregroundColor(themeManager.currentTheme.primaryTextColor)
                                     }
                                 }
                                 .buttonStyle(.plain)

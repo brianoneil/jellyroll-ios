@@ -3,6 +3,7 @@ import SwiftUI
 enum ThemeType: String {
     case light
     case dark
+    case blackberry
 }
 
 class ThemeManager: ObservableObject {    
@@ -16,12 +17,18 @@ class ThemeManager: ObservableObject {
     init(initialTheme: Theme? = nil) {
         if let theme = initialTheme {
             self.currentTheme = theme
-            self.currentThemeType = theme is DarkTheme ? .dark : .light
+            self.currentThemeType = theme is DarkTheme ? .dark : (theme is BlackberryTheme ? .blackberry : .light)
         } else {
             // Load saved theme preference
             let themeType = ThemeType(rawValue: UserDefaults.standard.string(forKey: "themeType") ?? "light") ?? .light
             self.currentThemeType = themeType
-            self.currentTheme = themeType == .dark ? DarkTheme() : LightTheme()
+            self.currentTheme = {
+                switch themeType {
+                case .dark: return DarkTheme()
+                case .blackberry: return BlackberryTheme()
+                case .light: return LightTheme()
+                }
+            }()
         }
     }
     
@@ -31,7 +38,14 @@ class ThemeManager: ObservableObject {
     }
     
     private func updateTheme() {
-        currentTheme = currentThemeType == .dark ? DarkTheme() : LightTheme()
+        switch currentThemeType {
+        case .dark:
+            currentTheme = DarkTheme()
+        case .blackberry:
+            currentTheme = BlackberryTheme()
+        case .light:
+            currentTheme = LightTheme()
+        }
     }
 }
 

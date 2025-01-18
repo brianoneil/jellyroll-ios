@@ -137,4 +137,90 @@ struct LightTheme: Theme {
             endPoint: .bottomTrailing
         )
     }
+}
+
+struct BlackberryTheme: Theme {
+    let backgroundColor = Color(hex: "11002D")      // Deep purple
+    let surfaceColor = Color(hex: "581B49")        // Rich purple
+    let elevatedSurfaceColor = Color(hex: "9F3B55") // Rose
+    
+    let accentColor = Color(hex: "D76E54")         // Coral
+    let accentGradient = LinearGradient(
+        colors: [
+            Color(hex: "F7AF54"),                  // Warm orange
+            Color(hex: "D76E54")                   // Coral
+        ],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+    
+    let primaryTextColor: Color = .white
+    let secondaryTextColor = Color.white.opacity(0.9)
+    let tertiaryTextColor = Color.white.opacity(0.7)
+    let separatorColor = Color.white.opacity(0.3)
+    
+    let backgroundGradient = LinearGradient(
+        colors: [
+            Color(hex: "11002D"),                  // Deep purple
+            Color(hex: "581B49")                   // Rich purple
+        ],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+    
+    let textGradient = LinearGradient(
+        colors: [.white, Color(white: 0.9)],
+        startPoint: .top,
+        endPoint: .bottom
+    )
+    
+    let overlayGradient = LinearGradient(
+        colors: [
+            .black.opacity(0.7),
+            .black.opacity(0.5),
+            .black.opacity(0.3),
+            .black.opacity(0.1),
+            .clear
+        ],
+        startPoint: .bottom,
+        endPoint: .top
+    )
+    
+    var cardGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                elevatedSurfaceColor,
+                Color(hex: "D76E54").opacity(0.95)  // Coral for depth
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+}
+
+// Helper extension for hex color initialization
+private extension Color {
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let a, r, g, b: UInt64
+        switch hex.count {
+        case 3: // RGB (12-bit)
+            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+        case 6: // RGB (24-bit)
+            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+        case 8: // ARGB (32-bit)
+            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+        default:
+            (a, r, g, b) = (1, 1, 1, 0)
+        }
+        self.init(
+            .sRGB,
+            red: Double(r) / 255,
+            green: Double(g) / 255,
+            blue:  Double(b) / 255,
+            opacity: Double(a) / 255
+        )
+    }
 } 
