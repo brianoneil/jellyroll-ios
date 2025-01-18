@@ -68,13 +68,23 @@ struct TabComponents {
             Button(action: action) {
                 VStack(spacing: 8) {
                     if let icon = icon {
-                        Image(systemName: icon)
-                            .font(.system(size: 20))
-                            .foregroundColor(isSelected ? themeManager.currentTheme.accentColor : themeManager.currentTheme.tertiaryTextColor)
+                        if icon == "jamm-logo" {
+                            // Custom image
+                            Image(icon)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(height: 24)
+                        } else {
+                            // System icon
+                            Image(systemName: icon)
+                                .font(.system(size: 24))
+                                .foregroundColor(isSelected ? themeManager.currentTheme.accentColor : themeManager.currentTheme.tertiaryTextColor)
+                        }
                     }
                     
                     if showLabel {
                         Text(title)
+                            .font(.system(size: 16))
                             .fontWeight(isSelected ? .bold : .regular)
                             .foregroundColor(isSelected ? themeManager.currentTheme.primaryTextColor : themeManager.currentTheme.tertiaryTextColor)
                     }

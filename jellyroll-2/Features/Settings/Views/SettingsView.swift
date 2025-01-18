@@ -182,6 +182,15 @@ struct SettingsView: View {
                 .scrollContentBackground(.hidden)
                 .navigationTitle("Settings")
                 .navigationBarTitleTextColor(themeManager.currentTheme.primaryTextColor)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Image("jamm-logo")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(height: 72)
+                            .offset(y: 48)
+                    }
+                }
             }
         }
     }

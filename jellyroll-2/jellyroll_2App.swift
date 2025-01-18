@@ -8,7 +8,7 @@
 import SwiftUI
 
 @main
-struct jellyroll_2App: App {
+struct JammPlayerApp: App {
     @StateObject private var themeManager = ThemeManager()
     @StateObject private var loginViewModel = LoginViewModel()
     
