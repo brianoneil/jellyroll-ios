@@ -10,15 +10,15 @@ struct HomeView: View {
     
     private var tabs: [TabComponents.TabItem] {
         var items = [
-            TabComponents.TabItem(title: "Home", icon: "house.fill")
+            TabComponents.TabItem(title: "Home", icon: "jamm-logo")
         ]
         
         if !libraryViewModel.movieLibraries.isEmpty {
-            items.append(TabComponents.TabItem(title: "Movies", icon: "film.fill"))
+            items.append(TabComponents.TabItem(title: "Movies", icon: "film"))
         }
         
         if !libraryViewModel.tvShowLibraries.isEmpty {
-            items.append(TabComponents.TabItem(title: "Series", icon: "tv.fill"))
+            items.append(TabComponents.TabItem(title: "Series", icon: "tv"))
         }
         
         if !libraryViewModel.musicLibraries.isEmpty {
@@ -63,10 +63,6 @@ struct HomeView: View {
     
     private var topNavigationBar: some View {
         HStack {
-            Image(systemName: "play.circle.fill")
-                .font(.title)
-                .foregroundStyle(themeManager.currentTheme.accentGradient)
-            
             Spacer()
             
             HStack(spacing: 20) {
