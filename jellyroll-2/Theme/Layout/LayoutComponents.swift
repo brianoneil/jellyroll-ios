@@ -147,4 +147,54 @@ struct LayoutComponents {
             }
         }
     }
+    
+    /// Backdrop image for media details
+    struct BackdropImage: View {
+        let itemId: String
+        @EnvironmentObject private var themeManager: ThemeManager
+        
+        var body: some View {
+            GeometryReader { geometry in
+                JellyfinImage(
+                    itemId: itemId,
+                    imageType: .primary,
+                    aspectRatio: 2/3,
+                    cornerRadius: 0,
+                    fallbackIcon: "film"
+                )
+                .aspectRatio(contentMode: .fill)
+                .frame(width: geometry.size.width, height: geometry.size.height + geometry.safeAreaInsets.top + geometry.safeAreaInsets.bottom)
+                .clipped()
+                .offset(y: -geometry.safeAreaInsets.top)
+            }
+            .ignoresSafeArea()
+        }
+    }
+}
+
+struct SeparatedHStack<Content: View>: View {
+    let content: Content
+    let separator: AnyView
+    let spacing: CGFloat
+    
+    init(spacing: CGFloat = 8, separator: AnyView, @ViewBuilder content: () -> Content) {
+        self.content = content()
+        self.separator = separator
+        self.spacing = spacing
+    }
+    
+    var body: some View {
+        HStack(spacing: spacing) {
+            content
+        }
+    }
+}
+
+extension View {
+    func separatedBy<S: View>(_ separator: S) -> some View {
+        HStack(spacing: 4) {
+            self
+            separator
+        }
+    }
 } 

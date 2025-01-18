@@ -14,6 +14,9 @@ protocol Theme {
     var tertiaryTextColor: Color { get }
     var separatorColor: Color { get }
     
+    // Icon Colors
+    var iconColor: Color { get }
+    
     // Gradients
     var backgroundGradient: LinearGradient { get }
     var textGradient: LinearGradient { get }
@@ -78,6 +81,8 @@ struct DarkTheme: Theme {
             endPoint: .bottomTrailing
         )
     }
+    
+    let iconColor = Color.white.opacity(0.9)
 }
 
 struct LightTheme: Theme {
@@ -137,4 +142,6 @@ struct LightTheme: Theme {
             endPoint: .bottomTrailing
         )
     }
+    
+    let iconColor = Color.white.opacity(0.9)
 } 
