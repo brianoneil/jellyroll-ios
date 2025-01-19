@@ -42,10 +42,6 @@ struct ContinueWatchingCard: View {
                 fallbackIcon: "play.circle.fill"
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(themeManager.currentTheme.accentColor, lineWidth: isSelected ? 2 : 0)
-            )
-            .overlay(
                 // Bottom Metadata Overlay
                 VStack {
                     Spacer()
