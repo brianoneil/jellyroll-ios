@@ -167,7 +167,29 @@ struct HomeView: View {
                                 .frame(height: 500)
                             }
                             .frame(height: 500)
-                            .padding(.top, 48)
+                            .padding(.top, 24)
+                            
+                            // Recently Added Section
+                            if !libraryViewModel.latestMedia.isEmpty {
+                                VStack(alignment: .leading, spacing: 16) {
+                                    Text("Recently Added")
+                                        .font(.title3)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                                        .padding(.horizontal)
+                                    
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 16) {
+                                            ForEach(libraryViewModel.latestMedia) { item in
+                                                RecentlyAddedCard(item: item)
+                                                    .frame(width: 160)
+                                            }
+                                        }
+                                        .padding(.horizontal)
+                                    }
+                                }
+                                .padding(.top, 8)
+                            }
                         }
                     }
                 }
