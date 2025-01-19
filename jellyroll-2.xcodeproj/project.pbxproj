@@ -24,9 +24,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		60F6922D2D2094780041B48E /* JammPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "JammPlayer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		60F692402D2094790041B48E /* JammPlayerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "JammPlayerTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		60F6924A2D2094790041B48E /* JammPlayerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "JammPlayerUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		60F6922D2D2094780041B48E /* JammPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JammPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		60F692402D2094790041B48E /* JammPlayerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JammPlayerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		60F6924A2D2094790041B48E /* JammPlayerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JammPlayerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -110,7 +110,7 @@
 			fileSystemSynchronizedGroups = (
 				60F6922F2D2094780041B48E /* jellyroll-2 */,
 			);
-			name = "JammPlayer";
+			name = JammPlayer;
 			packageProductDependencies = (
 			);
 			productName = "jellyroll-2";
@@ -133,18 +133,12 @@
 			fileSystemSynchronizedGroups = (
 				60F692432D2094790041B48E /* jellyroll-2Tests */,
 			);
-			name = "JammPlayerTests";
+			name = JammPlayerTests;
 			packageProductDependencies = (
 			);
-			productName = "JammPlayerTests";
+			productName = JammPlayerTests;
 			productReference = 60F692402D2094790041B48E /* JammPlayerTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
-			DEVELOPMENT_ASSET_PATHS = "\"jellyroll-2/Preview Content\"";
-			DEVELOPMENT_TEAM = 3YUUX4PHL7;
-			ENABLE_PREVIEWS = YES;
-			GENERATE_INFOPLIST_FILE = YES;
-			INFOPLIST_KEY_CFBundleDisplayName = "JammPlayer";
-			"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 		};
 		60F692492D2094790041B48E /* JammPlayerUITests */ = {
 			isa = PBXNativeTarget;
@@ -162,7 +156,7 @@
 			fileSystemSynchronizedGroups = (
 				60F6924D2D2094790041B48E /* jellyroll-2UITests */,
 			);
-			name = "JammPlayerUITests";
+			name = JammPlayerUITests;
 			packageProductDependencies = (
 			);
 			productName = "jellyroll-2UITests";
@@ -206,9 +200,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				60F6922C2D2094780041B48E /* jellyroll-2 */,
-				60F6923F2D2094790041B48E /* jellyroll-2Tests */,
-				60F692492D2094790041B48E /* jellyroll-2UITests */,
+				60F6922C2D2094780041B48E /* JammPlayer */,
+				60F6923F2D2094790041B48E /* JammPlayerTests */,
+				60F692492D2094790041B48E /* JammPlayerUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -264,12 +258,12 @@
 /* Begin PBXTargetDependency section */
 		60F692422D2094790041B48E /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 60F6922C2D2094780041B48E /* jellyroll-2 */;
+			target = 60F6922C2D2094780041B48E /* JammPlayer */;
 			targetProxy = 60F692412D2094790041B48E /* PBXContainerItemProxy */;
 		};
 		60F6924C2D2094790041B48E /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 60F6922C2D2094780041B48E /* jellyroll-2 */;
+			target = 60F6922C2D2094780041B48E /* JammPlayer */;
 			targetProxy = 60F6924B2D2094790041B48E /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -401,7 +395,7 @@
 				DEVELOPMENT_TEAM = 3YUUX4PHL7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "JammPlayer";
+				INFOPLIST_KEY_CFBundleDisplayName = JammPlayer;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -417,7 +411,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.brainivy.jammplayer";
+				PRODUCT_BUNDLE_IDENTIFIER = com.brainivy.jammplayer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
@@ -440,7 +434,7 @@
 				DEVELOPMENT_TEAM = 3YUUX4PHL7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "JammPlayer";
+				INFOPLIST_KEY_CFBundleDisplayName = JammPlayer;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -456,7 +450,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.brainivy.jammplayer.tests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.brainivy.jammplayer.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
@@ -565,7 +559,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		60F692542D2094790041B48E /* Build configuration list for PBXNativeTarget "jellyroll-2" */ = {
+		60F692542D2094790041B48E /* Build configuration list for PBXNativeTarget "JammPlayer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				60F692552D2094790041B48E /* Debug */,
@@ -574,7 +568,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		60F692572D2094790041B48E /* Build configuration list for PBXNativeTarget "jellyroll-2Tests" */ = {
+		60F692572D2094790041B48E /* Build configuration list for PBXNativeTarget "JammPlayerTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				60F692582D2094790041B48E /* Debug */,
@@ -583,7 +577,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		60F6925A2D2094790041B48E /* Build configuration list for PBXNativeTarget "jellyroll-2UITests" */ = {
+		60F6925A2D2094790041B48E /* Build configuration list for PBXNativeTarget "JammPlayerUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				60F6925B2D2094790041B48E /* Debug */,
