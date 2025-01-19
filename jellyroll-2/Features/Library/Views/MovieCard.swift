@@ -175,8 +175,8 @@ struct MovieCard: View {
         .fullScreenCover(isPresented: $showingPlayer) {
             VideoPlayerView(item: item, startTime: item.playbackPositionTicks.map { Double($0) / 10_000_000 })
         }
-        .sheet(isPresented: $showingDetail) {
-            NavigationView {
+        .fullScreenCover(isPresented: $showingDetail) {
+            NavigationStack {
                 MovieDetailView(item: item)
             }
         }

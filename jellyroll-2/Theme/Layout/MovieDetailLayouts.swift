@@ -159,10 +159,10 @@ struct MovieDetailLayouts {
                             .clipShape(RoundedRectangle(cornerRadius: 16))
                         }
                         .padding(.horizontal, 16)
-                        .padding(.top, 16)
+                        .padding(.top, 36)
                         Spacer()
                     }
-                    .safeAreaInset(edge: .top) { Color.clear.frame(height: 8) }
+                    .safeAreaInset(edge: .top) { Color.clear.frame(height: 24) }
                     
                     // Content Card with blur effect
                     VStack(spacing: 0) {
