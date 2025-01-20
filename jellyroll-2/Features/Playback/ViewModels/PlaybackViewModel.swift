@@ -241,8 +241,7 @@ class PlaybackViewModel: ObservableObject {
             return
         }
         
-        let position = currentTime
-        let positionTicks = Int64(position * 10_000_000)
+        let positionTicks = PlaybackProgressUtility.secondsToTicks(currentTime)
         
         do {
             try await playbackService.updatePlaybackProgress(for: item, positionTicks: positionTicks)

@@ -9,22 +9,14 @@ struct ContinueWatchingCard: View {
     @State private var showingPlayer = false
     
     private var progressPercentage: Double {
-        if let position = item.playbackPositionTicks,
-           let total = item.runTimeTicks,
-           total > 0 {
-            return Double(position) / Double(total)
-        }
-        return 0
+        return PlaybackProgressUtility.calculateProgress(positionTicks: item.playbackPositionTicks, totalTicks: item.runTimeTicks) ?? 0
     }
     
     private var progressText: String {
-        if let remainingTime = item.remainingTime {
-            if let lastNumberIndex = remainingTime.lastIndex(where: { $0.isNumber }) {
-                let index = remainingTime.index(after: lastNumberIndex)
-                let numbers = remainingTime[...lastNumberIndex]
-                let text = remainingTime[index...]
-                return "\(numbers) \(text)"
-            }
+        if let remainingTime = PlaybackProgressUtility.formatRemainingTime(
+            positionTicks: item.playbackPositionTicks,
+            totalTicks: item.runTimeTicks
+        ) {
             return remainingTime
         } else {
             return "\(Int(round(progressPercentage * 100)))%"

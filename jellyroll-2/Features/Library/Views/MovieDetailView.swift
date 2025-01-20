@@ -12,22 +12,14 @@ struct MovieDetailView: View {
     }
     
     private var progressPercentage: Double {
-        guard let runtime = item.runTimeTicks, runtime > 0 else { return 0 }
-        let position = item.userData.playbackPositionTicks ?? 0
-        return Double(position) / Double(runtime)
+        return PlaybackProgressUtility.calculateProgress(positionTicks: item.userData.playbackPositionTicks, totalTicks: item.runTimeTicks) ?? 0
     }
     
     private var progressText: String {
-        let position = item.userData.playbackPositionTicks ?? 0
-        let totalSeconds = Int(Double(position) / 10_000_000)
-        let hours = totalSeconds / 3600
-        let minutes = (totalSeconds % 3600) / 60
-        
-        if hours > 0 {
-            return "\(hours)h \(minutes)m left"
-        } else {
-            return "\(minutes)m left"
-        }
+        return PlaybackProgressUtility.formatRemainingTime(
+            positionTicks: item.userData.playbackPositionTicks,
+            totalTicks: item.runTimeTicks
+        ) ?? ""
     }
     
     var body: some View {
@@ -54,7 +46,7 @@ struct MovieDetailView: View {
         }
         .navigationBarHidden(true)
         .fullScreenCover(isPresented: $showingPlayer) {
-            VideoPlayerView(item: item, startTime: item.userData.playbackPositionTicks.map { Double($0) / 10_000_000 })
+            VideoPlayerView(item: item, startTime: item.userData.playbackPositionTicks.map { PlaybackProgressUtility.ticksToSeconds($0) })
         }
     }
 } 

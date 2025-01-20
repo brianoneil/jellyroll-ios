@@ -212,27 +212,15 @@ struct MediaItem: Codable, Identifiable {
     }
     
     var formattedRuntime: String? {
-        guard let ticks = runTimeTicks else { return nil }
-        let seconds = Double(ticks) / 10_000_000
-        let minutes = Int(seconds / 60)
-        return "\(minutes)min"
+        return PlaybackProgressUtility.formatDuration(ticks: runTimeTicks)
     }
     
     var playbackProgress: Double? {
-        guard let position = playbackPositionTicks,
-              let total = runTimeTicks,
-              total > 0 else { return nil }
-        return Double(position) / Double(total)
+        return PlaybackProgressUtility.calculateProgress(positionTicks: playbackPositionTicks, totalTicks: runTimeTicks)
     }
     
     var remainingTime: String? {
-        guard let position = playbackPositionTicks,
-              let total = runTimeTicks,
-              total > 0 else { return nil }
-        let remainingTicks = total - position
-        let remainingSeconds = Double(remainingTicks) / 10_000_000
-        let remainingMinutes = Int(remainingSeconds / 60)
-        return "\(remainingMinutes)min remaining"
+        return PlaybackProgressUtility.formatRemainingTime(positionTicks: playbackPositionTicks, totalTicks: runTimeTicks)
     }
     
     var episodeInfo: String? {
