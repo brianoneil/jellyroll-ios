@@ -13,6 +13,8 @@ class ThemeManager: ObservableObject {
         }
     }
     
+    @Published var debugImageLoading: Bool = false
+    
     init(initialTheme: Theme? = nil) {
         if let theme = initialTheme {
             self.currentTheme = theme
@@ -23,6 +25,9 @@ class ThemeManager: ObservableObject {
             self.currentThemeType = themeType
             self.currentTheme = themeType == .dark ? DarkTheme() : LightTheme()
         }
+        
+        // Load debug settings
+        debugImageLoading = UserDefaults.standard.bool(forKey: "debugImageLoading")
     }
     
     func setTheme(_ type: ThemeType) {
@@ -32,6 +37,11 @@ class ThemeManager: ObservableObject {
     
     private func updateTheme() {
         currentTheme = currentThemeType == .dark ? DarkTheme() : LightTheme()
+    }
+    
+    func toggleDebugImageLoading() {
+        debugImageLoading.toggle()
+        UserDefaults.standard.set(debugImageLoading, forKey: "debugImageLoading")
     }
 }
 

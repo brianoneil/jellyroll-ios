@@ -178,6 +178,17 @@ struct SettingsView: View {
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                     }
+
+                    #if DEBUG
+                    // Debug Settings Section
+                    Section("Debug Settings") {
+                        Toggle("Use BlurHash Only", isOn: Binding(
+                            get: { themeManager.debugImageLoading },
+                            set: { _ in themeManager.toggleDebugImageLoading() }
+                        ))
+                        .tint(themeManager.currentTheme.accentColor)
+                    }
+                    #endif
                 }
                 .scrollContentBackground(.hidden)
                 .navigationTitle("Settings")

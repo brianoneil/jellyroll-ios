@@ -6,8 +6,15 @@ struct LayoutComponents {
     struct HeroSection: View {
         let imageId: String
         let onBackTapped: () -> Void
+        let blurHash: String?
         @EnvironmentObject private var themeManager: ThemeManager
         @EnvironmentObject private var layoutManager: LayoutManager
+        
+        init(imageId: String, onBackTapped: @escaping () -> Void, blurHash: String? = nil) {
+            self.imageId = imageId
+            self.onBackTapped = onBackTapped
+            self.blurHash = blurHash
+        }
         
         var body: some View {
             ZStack(alignment: .top) {
@@ -17,7 +24,8 @@ struct LayoutComponents {
                     imageType: .backdrop,
                     aspectRatio: layoutManager.isLandscape ? 21/9 : 16/9,
                     cornerRadius: 0,
-                    fallbackIcon: "film"
+                    fallbackIcon: "film",
+                    blurHash: blurHash
                 )
                 .frame(maxWidth: .infinity)
                 .frame(height: layoutManager.isLandscape ? 320 : 260)
@@ -151,7 +159,13 @@ struct LayoutComponents {
     /// Backdrop image for media details
     struct BackdropImage: View {
         let itemId: String
+        let blurHash: String?
         @EnvironmentObject private var themeManager: ThemeManager
+        
+        init(itemId: String, blurHash: String? = nil) {
+            self.itemId = itemId
+            self.blurHash = blurHash
+        }
         
         var body: some View {
             GeometryReader { geometry in
@@ -160,7 +174,8 @@ struct LayoutComponents {
                     imageType: .primary,
                     aspectRatio: 2/3,
                     cornerRadius: 0,
-                    fallbackIcon: "film"
+                    fallbackIcon: "film",
+                    blurHash: blurHash
                 )
                 .aspectRatio(contentMode: .fill)
                 .frame(width: geometry.size.width, height: geometry.size.height + geometry.safeAreaInsets.top + geometry.safeAreaInsets.bottom)

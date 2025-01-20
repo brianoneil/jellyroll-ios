@@ -18,7 +18,10 @@ struct MovieDetailLayouts {
         var body: some View {
             ZStack {
                 // Background Image Layer
-                LayoutComponents.BackdropImage(itemId: item.id)
+                LayoutComponents.BackdropImage(
+                    itemId: item.id,
+                    blurHash: item.imageBlurHashes["Primary"]?.values.first
+                )
                     .edgesIgnoringSafeArea(.all)
                 
                 // Optional overlay gradient to ensure content visibility
@@ -454,7 +457,8 @@ struct MovieDetailLayouts {
                         // Hero Section
                         LayoutComponents.HeroSection(
                             imageId: item.id,
-                            onBackTapped: dismiss
+                            onBackTapped: dismiss,
+                            blurHash: item.imageBlurHashes["Primary"]?.values.first
                         )
                         
                         VStack(spacing: 24) {

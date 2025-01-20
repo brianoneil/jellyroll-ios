@@ -31,7 +31,11 @@ struct ContinueWatchingCard: View {
                 imageType: .primary,
                 aspectRatio: 2/3,
                 cornerRadius: 12,
-                fallbackIcon: "play.circle.fill"
+                fallbackIcon: "play.circle.fill",
+                blurHash: {
+                    let hash = item.imageBlurHashes["Primary"]?.values.first
+                    return hash
+                }()
             )
             .overlay(
                 // Bottom Metadata Overlay

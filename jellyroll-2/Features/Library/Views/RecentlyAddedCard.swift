@@ -21,7 +21,11 @@ struct RecentlyAddedCard: View {
                     imageType: .primary,
                     aspectRatio: 2/3,
                     cornerRadius: 12,
-                    fallbackIcon: "film"
+                    fallbackIcon: "film",
+                    blurHash: {
+                        let hash = item.imageBlurHashes["Primary"]?.values.first
+                        return hash
+                    }()
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
