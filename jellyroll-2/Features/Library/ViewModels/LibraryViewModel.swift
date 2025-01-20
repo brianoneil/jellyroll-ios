@@ -9,11 +9,15 @@ class LibraryViewModel: ObservableObject {
     @Published var libraries: [LibraryItem] = []
     @Published var continueWatching: [MediaItem] = []
     @Published var latestMedia: [MediaItem] = []
-    @Published var movieItems: [String: [MediaItem]] = [:]
-    @Published var tvShowItems: [String: [MediaItem]] = [:]
-    @Published var musicItems: [String: [MediaItem]] = [:]
     @Published var isLoading = false
     @Published var errorMessage: String?
+    
+    // Single dictionary to store all media items by type and library ID
+    @Published private var mediaItems: [LibraryType: [String: [MediaItem]]] = [
+        .movies: [:],
+        .tvshows: [:],
+        .music: [:]
+    ]
     
     func loadLibraries() async {
         isLoading = true
@@ -57,15 +61,9 @@ class LibraryViewModel: ObservableObject {
                 group.addTask {
                     do {
                         let items = try await self.libraryService.getLibraryItems(libraryId: library.id)
-                        switch LibraryType(from: library.collectionType) {
-                        case .movies:
-                            await self.updateMovieItems(library.id, items)
-                        case .tvshows:
-                            await self.updateTVShowItems(library.id, items)
-                        case .music:
-                            await self.updateMusicItems(library.id, items)
-                        default:
-                            break
+                        let type = LibraryType(from: library.collectionType)
+                        if type != .unknown {
+                            await self.updateMediaItems(type: type, libraryId: library.id, items: items)
                         }
                     } catch {
                         self.logger.error("Error loading items for library \(library.name): \(error.localizedDescription)")
@@ -76,41 +74,24 @@ class LibraryViewModel: ObservableObject {
     }
     
     @MainActor
-    private func updateMovieItems(_ libraryId: String, _ items: [MediaItem]) {
-        movieItems[libraryId] = items
+    private func updateMediaItems(type: LibraryType, libraryId: String, items: [MediaItem]) {
+        mediaItems[type]?[libraryId] = items
     }
     
-    @MainActor
-    private func updateTVShowItems(_ libraryId: String, _ items: [MediaItem]) {
-        tvShowItems[libraryId] = items
+    private func getLibraries(of type: LibraryType) -> [LibraryItem] {
+        libraries.filter { LibraryType(from: $0.collectionType) == type }
     }
     
-    @MainActor
-    private func updateMusicItems(_ libraryId: String, _ items: [MediaItem]) {
-        musicItems[libraryId] = items
+    private func getItems(type: LibraryType, libraryId: String) -> [MediaItem] {
+        mediaItems[type]?[libraryId] ?? []
     }
     
-    var movieLibraries: [LibraryItem] {
-        libraries.filter { LibraryType(from: $0.collectionType) == .movies }
-    }
+    // Public interface remains the same for backward compatibility
+    var movieLibraries: [LibraryItem] { getLibraries(of: .movies) }
+    var tvShowLibraries: [LibraryItem] { getLibraries(of: .tvshows) }
+    var musicLibraries: [LibraryItem] { getLibraries(of: .music) }
     
-    var tvShowLibraries: [LibraryItem] {
-        libraries.filter { LibraryType(from: $0.collectionType) == .tvshows }
-    }
-    
-    var musicLibraries: [LibraryItem] {
-        libraries.filter { LibraryType(from: $0.collectionType) == .music }
-    }
-    
-    func getMovieItems(for libraryId: String) -> [MediaItem] {
-        movieItems[libraryId] ?? []
-    }
-    
-    func getTVShowItems(for libraryId: String) -> [MediaItem] {
-        tvShowItems[libraryId] ?? []
-    }
-    
-    func getMusicItems(for libraryId: String) -> [MediaItem] {
-        musicItems[libraryId] ?? []
-    }
+    func getMovieItems(for libraryId: String) -> [MediaItem] { getItems(type: .movies, libraryId: libraryId) }
+    func getTVShowItems(for libraryId: String) -> [MediaItem] { getItems(type: .tvshows, libraryId: libraryId) }
+    func getMusicItems(for libraryId: String) -> [MediaItem] { getItems(type: .music, libraryId: libraryId) }
 } 
