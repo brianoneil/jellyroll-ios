@@ -10,16 +10,52 @@ enum PlaybackError: Error {
     case downloadError(String)
 }
 
+/// Protocol defining the interface for persisting download states
+protocol DownloadStatePersistable {
+    func saveStates(_ states: [String: PlaybackService.DownloadState]) throws
+    func loadStates() throws -> [String: PlaybackService.DownloadState]
+}
+
+/// Concrete implementation of download state persistence using UserDefaults
+class UserDefaultsDownloadStatePersistence: DownloadStatePersistable {
+    private let logger = Logger(subsystem: "com.jellyroll.app", category: "DownloadStatePersistence")
+    private let storageKey = "downloadStates"
+    
+    func saveStates(_ states: [String: PlaybackService.DownloadState]) throws {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        let data = try encoder.encode(states)
+        UserDefaults.standard.set(data, forKey: storageKey)
+        UserDefaults.standard.synchronize()
+        logger.debug("Saved \(states.count) download states")
+    }
+    
+    func loadStates() throws -> [String: PlaybackService.DownloadState] {
+        guard let data = UserDefaults.standard.data(forKey: storageKey) else {
+            logger.debug("No saved download states found")
+            return [:]
+        }
+        
+        let decoder = JSONDecoder()
+        return try decoder.decode([String: PlaybackService.DownloadState].self, from: data)
+    }
+}
+
 @MainActor
 class PlaybackService: NSObject, ObservableObject {
     static let shared = PlaybackService()
     private let authService = AuthenticationService.shared
     private let logger = Logger(subsystem: "com.jellyroll.app", category: "PlaybackService")
+    private let statePersistence: DownloadStatePersistable
     
     @Published private(set) var activeDownloads: [String: DownloadState] = [:] {
         didSet {
             Task { @MainActor in
-                self.saveDownloadStates()
+                do {
+                    try self.statePersistence.saveStates(self.activeDownloads)
+                } catch {
+                    self.logger.error("Failed to save download states: \(error.localizedDescription)")
+                }
             }
         }
     }
@@ -37,8 +73,14 @@ class PlaybackService: NSObject, ObservableObject {
     }()
     
     private override init() {
+        self.statePersistence = UserDefaultsDownloadStatePersistence()
         super.init()
-        loadDownloadStates()
+        do {
+            self.activeDownloads = try statePersistence.loadStates()
+        } catch {
+            logger.error("Failed to load download states: \(error.localizedDescription)")
+            self.activeDownloads = [:]
+        }
     }
     
     struct DownloadState: Codable {
@@ -143,100 +185,17 @@ class PlaybackService: NSObject, ObservableObject {
         }
     }
     
-    private func saveDownloadStates() {
-        do {
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = .prettyPrinted
-            let data = try encoder.encode(self.activeDownloads)
-            UserDefaults.standard.set(data, forKey: "downloadStates")
-            UserDefaults.standard.synchronize()  // Force immediate save
-            self.logger.debug("Saved \(self.activeDownloads.count) download states")
-            
-            // Log the current states for debugging
-            if let jsonString = String(data: data, encoding: .utf8) {
-                self.logger.debug("Saved JSON: \(jsonString)")
-            }
-            
-            for (itemId, state) in self.activeDownloads {
-                self.logger.debug("State for \(itemId): status=\(String(describing: state.status)), url=\(state.localURL?.path ?? "nil")")
-            }
-        } catch {
-            self.logger.error("Failed to save download states: \(error.localizedDescription)")
-        }
-    }
-    
-    private func loadDownloadStates() {
-        guard let data = UserDefaults.standard.data(forKey: "downloadStates") else { 
-            self.logger.debug("No saved download states found")
-            return 
-        }
-        
-        // Log the raw data for debugging
-        if let jsonString = String(data: data, encoding: .utf8) {
-            self.logger.debug("Loading JSON: \(jsonString)")
-        }
-        
-        do {
-            let decoder = JSONDecoder()
-            let states = try decoder.decode([String: DownloadState].self, from: data)
-            self.logger.debug("Loaded \(states.count) download states")
-            
-            let fileManager = FileManager.default
-            guard let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
-                self.logger.error("Could not access Documents directory")
-                return
-            }
-            let downloadsURL = documentsURL.appendingPathComponent("Downloads", isDirectory: true)
-            
-            // Process each state
-            var newStates: [String: DownloadState] = [:]
-            for (itemId, _) in states {
-                // Check if the file exists for this state
-                let expectedPath = downloadsURL.appendingPathComponent("\(itemId).mp4")
-                let fileExists = fileManager.fileExists(atPath: expectedPath.path)
-                self.logger.debug("Checking file at \(expectedPath.path): exists=\(fileExists)")
-                
-                if fileExists {
-                    // If the file exists, mark it as downloaded regardless of previous state
-                    self.logger.debug("File exists, marking as downloaded")
-                    newStates[itemId] = DownloadState(progress: 1.0, status: .downloaded, localURL: expectedPath)
-                } else {
-                    // If the file doesn't exist, mark as not downloaded
-                    self.logger.debug("File does not exist, marking as not downloaded")
-                    newStates[itemId] = DownloadState(progress: 0, status: .notDownloaded)
-                }
-            }
-            
-            self.logger.debug("Final state count after validation: \(newStates.count)")
-            self.activeDownloads = newStates
-        } catch {
-            self.logger.error("Failed to load download states: \(error.localizedDescription)")
-            self.activeDownloads = [:]
-        }
-    }
-    
-    func getPlaybackURL(for item: MediaItem) async throws -> URL {
-        guard let config = try? authService.getServerConfiguration(),
-              let token = try? authService.getCurrentToken() else {
-            throw PlaybackError.invalidToken
-        }
-        
-        let urlString = config.baseURLString.trimmingCharacters(in: .whitespaces)
-        guard let baseURL = URL(string: urlString) else {
-            throw PlaybackError.invalidURL
-        }
-        
-        // Construct the video stream URL
-        let playbackURL = baseURL
+    /// Helper method to construct media stream URLs with proper authentication and parameters
+    private func constructMediaStreamURL(for itemId: String, token: AuthenticationToken, baseURL: URL) throws -> URL {
+        let streamURL = baseURL
             .appendingPathComponent("Videos")
-            .appendingPathComponent(item.id)
+            .appendingPathComponent(itemId)
             .appendingPathComponent("stream")
         
-        var components = URLComponents(url: playbackURL, resolvingAgainstBaseURL: true)!
+        var components = URLComponents(url: streamURL, resolvingAgainstBaseURL: true)!
         components.queryItems = [
             URLQueryItem(name: "static", value: "true"),
             URLQueryItem(name: "api_key", value: token.accessToken),
-            // Basic audio parameters
             URLQueryItem(name: "AudioCodec", value: "aac"),
             URLQueryItem(name: "MaxAudioChannels", value: "2"),
             URLQueryItem(name: "AudioSampleRate", value: "44100"),
@@ -249,17 +208,31 @@ class PlaybackService: NSObject, ObservableObject {
         
         return finalURL
     }
-    
-    func updatePlaybackProgress(for item: MediaItem, positionTicks: Int64) async throws {
+
+    /// Helper method to get authenticated server base URL
+    private func getAuthenticatedBaseURL() throws -> (baseURL: URL, token: AuthenticationToken) {
         guard let config = try? authService.getServerConfiguration(),
               let token = try? authService.getCurrentToken() else {
+            logger.error("Failed to get server configuration or token")
             throw PlaybackError.invalidToken
         }
         
         let urlString = config.baseURLString.trimmingCharacters(in: .whitespaces)
         guard let baseURL = URL(string: urlString) else {
+            logger.error("Invalid base URL: \(urlString)")
             throw PlaybackError.invalidURL
         }
+        
+        return (baseURL, token)
+    }
+
+    func getPlaybackURL(for item: MediaItem) async throws -> URL {
+        let (baseURL, token) = try getAuthenticatedBaseURL()
+        return try constructMediaStreamURL(for: item.id, token: token, baseURL: baseURL)
+    }
+    
+    func updatePlaybackProgress(for item: MediaItem, positionTicks: Int64) async throws {
+        let (baseURL, token) = try getAuthenticatedBaseURL()
         
         // Construct the playback progress URL
         let progressURL = baseURL
@@ -299,60 +272,8 @@ class PlaybackService: NSObject, ObservableObject {
     
     func downloadMovie(item: MediaItem) async throws -> URL {
         self.logger.debug("Starting download for item: \(item.id) - \(item.name)")
-        
-        guard let config = try? authService.getServerConfiguration(),
-              let token = try? authService.getCurrentToken() else {
-            self.logger.error("Failed to get server configuration or token")
-            throw PlaybackError.invalidToken
-        }
-        
-        let urlString = config.baseURLString.trimmingCharacters(in: .whitespaces)
-        guard let baseURL = URL(string: urlString) else {
-            self.logger.error("Invalid base URL: \(urlString)")
-            throw PlaybackError.invalidURL
-        }
-        
-        let downloadURL = baseURL
-            .appendingPathComponent("Videos")
-            .appendingPathComponent(item.id)
-            .appendingPathComponent("stream")
-        
-        var components = URLComponents(url: downloadURL, resolvingAgainstBaseURL: true)!
-        components.queryItems = [
-            URLQueryItem(name: "static", value: "true"),
-            URLQueryItem(name: "api_key", value: token.accessToken),
-            URLQueryItem(name: "AudioCodec", value: "aac"),
-            URLQueryItem(name: "MaxAudioChannels", value: "2"),
-            URLQueryItem(name: "AudioSampleRate", value: "44100"),
-            URLQueryItem(name: "StartTimeTicks", value: "0")
-        ]
-        
-        guard let finalURL = components.url else {
-            self.logger.error("Failed to create final URL from components")
-            throw PlaybackError.invalidURL
-        }
-        
-        self.logger.debug("Download URL: \(finalURL.absoluteString)")
-        
-        var request = URLRequest(url: finalURL)
-        request.setValue("Bearer \(token.accessToken)", forHTTPHeaderField: "Authorization")
-        request.setValue(token.accessToken, forHTTPHeaderField: "X-MediaBrowser-Token")
-        
-        // Get downloads directory
-        let downloadsURL = try getDownloadsDirectory()
-        self.logger.debug("Downloads directory path: \(downloadsURL.path)")
-        
-        // Start download task
-        self.activeDownloads[item.id] = DownloadState(progress: 0, status: .downloading)
-        self.logger.debug("Starting download task for item: \(item.id)")
-        
-        return try await withCheckedThrowingContinuation { continuation in
-            let task = downloadSession.downloadTask(with: request)
-            downloadTasks[task] = item.id
-            downloadContinuations[item.id] = continuation
-            task.resume()
-            self.logger.debug("Download task started with identifier: \(task.taskIdentifier)")
-        }
+        let (baseURL, token) = try getAuthenticatedBaseURL()
+        return try constructMediaStreamURL(for: item.id, token: token, baseURL: baseURL)
     }
     
     func getDownloadState(for itemId: String) -> DownloadState? {
