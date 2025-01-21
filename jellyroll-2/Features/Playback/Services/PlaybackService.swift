@@ -187,25 +187,44 @@ class PlaybackService: NSObject, ObservableObject {
     
     /// Helper method to construct media stream URLs with proper authentication and parameters
     private func constructMediaStreamURL(for itemId: String, token: AuthenticationToken, baseURL: URL) throws -> URL {
+        self.logger.debug("[Stream URL] Constructing stream URL for item: \(itemId)")
+        
         let streamURL = baseURL
             .appendingPathComponent("Videos")
             .appendingPathComponent(itemId)
-            .appendingPathComponent("stream")
+            .appendingPathComponent("master.m3u8")  // Changed to m3u8 endpoint
+        
+        self.logger.debug("[Stream URL] Base stream URL: \(streamURL.absoluteString)")
         
         var components = URLComponents(url: streamURL, resolvingAgainstBaseURL: true)!
         components.queryItems = [
-            URLQueryItem(name: "static", value: "true"),
             URLQueryItem(name: "api_key", value: token.accessToken),
+            // HLS specific parameters
+            URLQueryItem(name: "MediaSourceId", value: itemId),
+            URLQueryItem(name: "PlaySessionId", value: UUID().uuidString),
+            URLQueryItem(name: "VideoCodec", value: "h264"),
             URLQueryItem(name: "AudioCodec", value: "aac"),
-            URLQueryItem(name: "MaxAudioChannels", value: "2"),
-            URLQueryItem(name: "AudioSampleRate", value: "44100"),
-            URLQueryItem(name: "StartTimeTicks", value: "0")
+            URLQueryItem(name: "TranscodingMaxAudioChannels", value: "2"),
+            URLQueryItem(name: "RequireAvc", value: "true"),
+            URLQueryItem(name: "TranscodingContainer", value: "ts"),
+            URLQueryItem(name: "SegmentContainer", value: "ts"),
+            URLQueryItem(name: "MinSegments", value: "2"),
+            URLQueryItem(name: "ManifestSubtitles", value: "vtt"),
+            URLQueryItem(name: "h264-profile", value: "high,main,baseline,constrained-baseline"),
+            URLQueryItem(name: "h264-level", value: "51"),
+            URLQueryItem(name: "TranscodingProtocol", value: "hls"),
+            URLQueryItem(name: "EnableDirectStream", value: "false"),
+            URLQueryItem(name: "EnableDirectPlay", value: "false"),
+            URLQueryItem(name: "SubtitleMethod", value: "Hls"),
+            URLQueryItem(name: "MaxStreamingBitrate", value: "140000000")
         ]
         
         guard let finalURL = components.url else {
+            self.logger.error("[Stream URL] Failed to construct URL")
             throw PlaybackError.invalidURL
         }
         
+        self.logger.debug("[Stream URL] Final URL: \(finalURL.absoluteString)")
         return finalURL
     }
 
@@ -227,7 +246,9 @@ class PlaybackService: NSObject, ObservableObject {
     }
 
     func getPlaybackURL(for item: MediaItem) async throws -> URL {
+        self.logger.debug("[Playback] Getting playback URL for item: \(item.id) - \(item.name)")
         let (baseURL, token) = try getAuthenticatedBaseURL()
+        self.logger.debug("[Playback] Using base URL: \(baseURL.absoluteString)")
         return try constructMediaStreamURL(for: item.id, token: token, baseURL: baseURL)
     }
     

@@ -6,6 +6,7 @@ struct VideoPlayerView: View {
     let startTime: Double?
     @StateObject private var viewModel = PlaybackViewModel()
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var themeManager: ThemeManager
     
     init(item: MediaItem, startTime: Double? = nil) {
         self.item = item
@@ -13,13 +14,91 @@ struct VideoPlayerView: View {
     }
     
     var body: some View {
-        Group {
+        ZStack {
             if let player = viewModel.player {
                 AVPlayerControllerRepresentable(player: player, dismiss: dismiss)
                     .ignoresSafeArea()
             } else {
                 Color.black // Loading placeholder
                     .ignoresSafeArea()
+            }
+            
+            // Error overlay
+            if let error = viewModel.errorMessage {
+                VStack(spacing: 20) {
+                    Spacer()
+                    
+                    VStack(spacing: 16) {
+                        // Media info
+                        VStack(spacing: 8) {
+                            JellyfinImage(
+                                itemId: item.id,
+                                imageType: .backdrop,
+                                aspectRatio: 16/9,
+                                cornerRadius: 12,
+                                fallbackIcon: "film",
+                                blurHash: item.imageBlurHashes["Backdrop"]?.values.first
+                            )
+                            .frame(height: 120)
+                            
+                            Text(item.name)
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .multilineTextAlignment(.center)
+                            
+                            if let year = item.yearText {
+                                Text(year)
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                        
+                        // Error message
+                        VStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.yellow)
+                            
+                            Text("Playback Error")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            
+                            Text(error)
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                        }
+                        
+                        // Close button
+                        Button(action: {
+                            dismiss()
+                        }) {
+                            Text("Close")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.red.opacity(0.8))
+                                .cornerRadius(12)
+                        }
+                        .padding(.top, 8)
+                    }
+                    .padding(24)
+                    .background(Color.black.opacity(0.9))
+                    .cornerRadius(20)
+                    .padding(.horizontal, 24)
+                    
+                    Spacer()
+                        .frame(height: 40)
+                }
+            }
+            
+            // Loading indicator
+            if viewModel.isLoading {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    .scaleEffect(1.5)
             }
         }
         .navigationBarHidden(true)
@@ -46,6 +125,17 @@ struct AVPlayerControllerRepresentable: UIViewControllerRepresentable {
         controller.player = player
         controller.delegate = context.coordinator
         controller.allowsPictureInPicturePlayback = true
+        
+        // Configure for HDR playback and ensure controls are always visible
+        if #available(iOS 15.0, *) {
+            controller.videoGravity = .resizeAspect
+            controller.entersFullScreenWhenPlaybackBegins = true
+            controller.exitsFullScreenWhenPlaybackEnds = true
+        }
+        
+        // Keep controls visible
+        controller.showsPlaybackControls = true
+        
         return controller
     }
     
@@ -53,6 +143,8 @@ struct AVPlayerControllerRepresentable: UIViewControllerRepresentable {
         if uiViewController.player !== player {
             uiViewController.player = player
         }
+        // Ensure controls remain visible
+        uiViewController.showsPlaybackControls = true
     }
     
     func makeCoordinator() -> Coordinator {
@@ -68,7 +160,8 @@ struct AVPlayerControllerRepresentable: UIViewControllerRepresentable {
         }
         
         func playerViewController(_ playerViewController: AVPlayerViewController, willBeginFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator) {
-            // Handle full screen presentation if needed
+            // Ensure controls are visible when entering full screen
+            playerViewController.showsPlaybackControls = true
         }
         
         func playerViewController(_ playerViewController: AVPlayerViewController, willEndFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator) {

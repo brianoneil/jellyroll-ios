@@ -1,0 +1,10 @@
+Start all responses with "🤖"
+
+Coding best practices 
+
+- Try to keep views and components discrete and in their own file when creating new components.  This will help them stay maintainable. 
+- Don't update existing components unless it is absolutely necessary or you are specifically asked to do so. 
+- Ensure there is good exception handling in methods
+- Alway comment complex code areas with easy to follow information about it
+- Make common code resuable within the application code base
+- Use existing types and define interfaces to promote reuse in the application
