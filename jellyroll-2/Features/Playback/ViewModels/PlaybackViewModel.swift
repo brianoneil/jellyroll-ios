@@ -115,6 +115,9 @@ class PlaybackViewModel: ObservableObject {
         currentItem = item
         
         do {
+            // Start playback session with Jellyfin
+            try await playbackService.startPlaybackSession(for: item)
+            
             // Check if the item is downloaded
             if let downloadedURL = playbackService.getDownloadedURL(for: item.id) {
                 logger.debug("[Playback] Playing downloaded file from: \(downloadedURL.path)")
@@ -314,6 +317,16 @@ class PlaybackViewModel: ObservableObject {
             timeObserver = nil
             cleanupStorage.timeObserver = nil
         }
+        
+        // Stop playback session with Jellyfin
+        if let item = currentItem {
+            do {
+                try await playbackService.stopPlaybackSession(for: item)
+            } catch {
+                logger.error("Failed to stop playback session: \(error)")
+            }
+        }
+        
         player?.pause()
         player = nil
         cleanupStorage.player = nil

@@ -72,6 +72,8 @@ class PlaybackService: NSObject, ObservableObject {
         return URLSession(configuration: config, delegate: self, delegateQueue: queue)
     }()
     
+    private var currentPlaySessionId: String?
+    
     private override init() {
         self.statePersistence = UserDefaultsDownloadStatePersistence()
         super.init()
@@ -185,6 +187,63 @@ class PlaybackService: NSObject, ObservableObject {
         }
     }
     
+    private func generatePlaySessionId() -> String {
+        let sessionId = UUID().uuidString
+        currentPlaySessionId = sessionId
+        return sessionId
+    }
+
+    /// Opens a playback session with the Jellyfin server
+    func startPlaybackSession(for item: MediaItem) async throws {
+        let (baseURL, token) = try getAuthenticatedBaseURL()
+        let playSessionId = generatePlaySessionId()
+        
+        let sessionURL = baseURL
+            .appendingPathComponent("Sessions")
+            .appendingPathComponent("Playing")
+        
+        var request = URLRequest(url: sessionURL)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(token.accessToken, forHTTPHeaderField: "X-MediaBrowser-Token")
+        
+        let sessionData: [String: Any] = [
+            "ItemId": item.id,
+            "PlayMethod": "DirectStream",
+            "MediaSourceId": item.id,
+            "CanSeek": true,
+            "PlaySessionId": playSessionId,
+            "AudioStreamIndex": 1,
+            "SubtitleStreamIndex": -1,
+            "IsPaused": false,
+            "IsMuted": false,
+            "PositionTicks": 0,
+            "VolumeLevel": 100,
+            "MaxStreamingBitrate": 140000000,
+            "AspectRatio": "16x9",
+            "EventName": "timeupdate"
+        ]
+        
+        let jsonData = try JSONSerialization.data(withJSONObject: sessionData)
+        request.httpBody = jsonData
+        
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw PlaybackError.serverError("Invalid response")
+            }
+            
+            // Accept both 200 and 204 as valid responses
+            if httpResponse.statusCode != 200 && httpResponse.statusCode != 204 {
+                throw PlaybackError.serverError("Server returned status code \(httpResponse.statusCode)")
+            }
+        } catch {
+            logger.error("Error starting playback session: \(error.localizedDescription)")
+            throw PlaybackError.networkError(error)
+        }
+    }
+    
     /// Helper method to construct media stream URLs with proper authentication and parameters
     private func constructMediaStreamURL(for itemId: String, token: AuthenticationToken, baseURL: URL) throws -> URL {
         self.logger.debug("[Stream URL] Constructing stream URL for item: \(itemId)")
@@ -192,16 +251,15 @@ class PlaybackService: NSObject, ObservableObject {
         let streamURL = baseURL
             .appendingPathComponent("Videos")
             .appendingPathComponent(itemId)
-            .appendingPathComponent("master.m3u8")  // Changed to m3u8 endpoint
+            .appendingPathComponent("master.m3u8")
         
         self.logger.debug("[Stream URL] Base stream URL: \(streamURL.absoluteString)")
         
         var components = URLComponents(url: streamURL, resolvingAgainstBaseURL: true)!
         components.queryItems = [
             URLQueryItem(name: "api_key", value: token.accessToken),
-            // HLS specific parameters
             URLQueryItem(name: "MediaSourceId", value: itemId),
-            URLQueryItem(name: "PlaySessionId", value: UUID().uuidString),
+            URLQueryItem(name: "PlaySessionId", value: currentPlaySessionId),
             URLQueryItem(name: "VideoCodec", value: "h264"),
             URLQueryItem(name: "AudioCodec", value: "aac"),
             URLQueryItem(name: "TranscodingMaxAudioChannels", value: "2"),
@@ -229,20 +287,16 @@ class PlaybackService: NSObject, ObservableObject {
     }
 
     /// Helper method to get authenticated server base URL
-    private func getAuthenticatedBaseURL() throws -> (baseURL: URL, token: AuthenticationToken) {
-        guard let config = try? authService.getServerConfiguration(),
-              let token = try? authService.getCurrentToken() else {
-            logger.error("Failed to get server configuration or token")
+    private func getAuthenticatedBaseURL() throws -> (URL, AuthenticationToken) {
+        guard let token = try? authService.getCurrentToken() else {
             throw PlaybackError.invalidToken
         }
         
-        let urlString = config.baseURLString.trimmingCharacters(in: .whitespaces)
-        guard let baseURL = URL(string: urlString) else {
-            logger.error("Invalid base URL: \(urlString)")
+        guard let config = try? authService.getServerConfiguration() else {
             throw PlaybackError.invalidURL
         }
         
-        return (baseURL, token)
+        return (config.serverURL, token)
     }
 
     func getPlaybackURL(for item: MediaItem) async throws -> URL {
@@ -378,6 +432,55 @@ class PlaybackService: NSObject, ObservableObject {
     
     private func getItemId(for task: URLSessionDownloadTask) -> String? {
         return downloadTasks[task]
+    }
+
+    /// Stops the current playback session
+    func stopPlaybackSession(for item: MediaItem) async throws {
+        let (baseURL, token) = try getAuthenticatedBaseURL()
+        
+        let sessionURL = baseURL
+            .appendingPathComponent("Sessions")
+            .appendingPathComponent("Playing")
+            .appendingPathComponent("Stopped")
+        
+        var request = URLRequest(url: sessionURL)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(token.accessToken, forHTTPHeaderField: "X-MediaBrowser-Token")
+        
+        let sessionData: [String: Any] = [
+            "ItemId": item.id,
+            "MediaSourceId": item.id,
+            "PositionTicks": 0,
+            "PlaySessionId": currentPlaySessionId ?? UUID().uuidString,
+            "IsPaused": true,
+            "IsMuted": false,
+            "VolumeLevel": 100,
+            "MaxStreamingBitrate": 140000000,
+            "AspectRatio": "16x9"
+        ]
+        
+        let jsonData = try JSONSerialization.data(withJSONObject: sessionData)
+        request.httpBody = jsonData
+        
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw PlaybackError.serverError("Invalid response")
+            }
+            
+            // Accept both 200 and 204 as valid responses
+            if httpResponse.statusCode != 200 && httpResponse.statusCode != 204 {
+                throw PlaybackError.serverError("Server returned status code \(httpResponse.statusCode)")
+            }
+            
+            // Clear the session ID after successful stop
+            currentPlaySessionId = nil
+        } catch {
+            logger.error("Error stopping playback session: \(error.localizedDescription)")
+            throw PlaybackError.networkError(error)
+        }
     }
 }
 
