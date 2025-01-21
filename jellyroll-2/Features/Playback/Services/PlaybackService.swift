@@ -306,15 +306,13 @@ class PlaybackService: NSObject, ObservableObject {
         return try constructMediaStreamURL(for: item.id, token: token, baseURL: baseURL)
     }
     
-    func updatePlaybackProgress(for item: MediaItem, positionTicks: Int64) async throws {
+    func updatePlaybackProgress(for item: MediaItem, positionTicks: Int64, isPaused: Bool = false) async throws {
         let (baseURL, token) = try getAuthenticatedBaseURL()
         
         // Construct the playback progress URL
         let progressURL = baseURL
-            .appendingPathComponent("Users")
-            .appendingPathComponent(token.user.id)
-            .appendingPathComponent("PlayingItems")
-            .appendingPathComponent(item.id)
+            .appendingPathComponent("Sessions")
+            .appendingPathComponent("Playing")
             .appendingPathComponent("Progress")
         
         var request = URLRequest(url: progressURL)
@@ -322,8 +320,21 @@ class PlaybackService: NSObject, ObservableObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(token.accessToken, forHTTPHeaderField: "X-MediaBrowser-Token")
         
-        let progressData = [
-            "PositionTicks": positionTicks
+        let progressData: [String: Any] = [
+            "ItemId": item.id,
+            "MediaSourceId": item.id,
+            "PositionTicks": positionTicks,
+            "IsPaused": isPaused,
+            "IsMuted": false,
+            "PlaySessionId": currentPlaySessionId ?? UUID().uuidString,
+            "AudioStreamIndex": 1,
+            "SubtitleStreamIndex": -1,
+            "VolumeLevel": 100,
+            "PlayMethod": "DirectStream",
+            "RepeatMode": "RepeatNone",
+            "MaxStreamingBitrate": 140000000,
+            "AspectRatio": "16x9",
+            "EventName": isPaused ? "pause" : "timeupdate"
         ]
         
         let jsonData = try JSONSerialization.data(withJSONObject: progressData)
@@ -336,9 +347,13 @@ class PlaybackService: NSObject, ObservableObject {
                 throw PlaybackError.serverError("Invalid response")
             }
             
-            if httpResponse.statusCode != 200 {
+            // Accept both 200 and 204 as valid responses
+            if httpResponse.statusCode != 200 && httpResponse.statusCode != 204 {
+                self.logger.error("Progress update failed with status code: \(httpResponse.statusCode)")
                 throw PlaybackError.serverError("Server returned status code \(httpResponse.statusCode)")
             }
+            
+            self.logger.debug("Progress update successful - Position: \(positionTicks), IsPaused: \(isPaused)")
         } catch {
             logger.error("Error updating playback progress: \(error.localizedDescription)")
             throw PlaybackError.networkError(error)

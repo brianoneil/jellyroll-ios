@@ -175,6 +175,7 @@ class PlaybackViewModel: ObservableObject {
                     await MainActor.run {
                         logger.debug("[Playback] Configuring player")
                         configurePlayer(with: playerItem)
+                        setupTimeObserver()
                         player?.play()
                         isPlaying = true
                     }
@@ -226,24 +227,12 @@ class PlaybackViewModel: ObservableObject {
                     await MainActor.run {
                         logger.debug("[Playback] Configuring player for streaming")
                         configurePlayer(with: playerItem)
+                        setupTimeObserver()
                         player?.play()
                         isPlaying = true
                     }
                 }
             }
-            
-            // Observe playback time
-            let interval = CMTime(seconds: 1, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
-            let timeObserver = player?.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
-                guard let self = self else { return }
-                Task { @MainActor in
-                    self.currentTime = time.seconds
-                    if let duration = self.player?.currentItem?.duration.seconds {
-                        self.duration = duration
-                    }
-                }
-            }
-            cleanupStorage.timeObserver = timeObserver
             
         } catch {
             await MainActor.run {
@@ -264,6 +253,11 @@ class PlaybackViewModel: ObservableObject {
             player?.play()
         }
         isPlaying.toggle()
+        
+        // Report pause state immediately
+        Task {
+            await updateProgress()
+        }
     }
     
     func seek(to time: Double) async {
@@ -280,18 +274,23 @@ class PlaybackViewModel: ObservableObject {
             cleanupStorage.timeObserver = nil
         }
         
-        // Create new time observer
+        // Create new time observer with more frequent updates
         let interval = CMTime(seconds: 0.5, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
         let observer = player?.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 self.currentTime = time.seconds
                 self.duration = self.player?.currentItem?.duration.seconds ?? 0
-                await self.updateProgress()
+                
+                // Only update progress if we're actually playing
+                if self.isPlaying {
+                    await self.updateProgress()
+                }
             }
         }
         timeObserver = observer
         cleanupStorage.timeObserver = observer
+        logger.debug("[Player] Time observer setup complete")
     }
     
     private func updateProgress() async {
@@ -305,7 +304,11 @@ class PlaybackViewModel: ObservableObject {
         let positionTicks = PlaybackProgressUtility.secondsToTicks(currentTime)
         
         do {
-            try await playbackService.updatePlaybackProgress(for: item, positionTicks: positionTicks)
+            try await playbackService.updatePlaybackProgress(
+                for: item,
+                positionTicks: positionTicks,
+                isPaused: !isPlaying
+            )
         } catch {
             logger.error("Failed to update progress: \(error)")
         }
