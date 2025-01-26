@@ -58,6 +58,30 @@ class PlaybackViewModel: ObservableObject {
         self.player = player
         cleanupStorage.player = player
         
+        // Add observer for seeking state changes
+        let timeControlObserver = player.observe(\.timeControlStatus) { [weak self] player, _ in
+            guard let self = self else { return }
+            
+            Task { @MainActor in
+                switch player.timeControlStatus {
+                case .paused:
+                    // If we were previously playing and now paused, it might be due to seeking
+                    if self.isPlaying {
+                        await self.updateProgress()
+                    }
+                case .playing:
+                    // When playback resumes after seeking, update progress
+                    await self.updateProgress()
+                case .waitingToPlayAtSpecifiedRate:
+                    // Player is seeking or buffering
+                    break
+                @unknown default:
+                    break
+                }
+            }
+        }
+        cleanupStorage.timeControlObserver = timeControlObserver
+        
         // Add error handling observer
         let statusObserver = playerItem.observe(\.status) { [weak self] item, _ in
             guard let self = self else { return }
@@ -82,6 +106,21 @@ class PlaybackViewModel: ObservableObject {
         }
         cleanupStorage.statusObserver = statusObserver
         
+        // Add observer for seek completion
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handlePlaybackStalled),
+            name: .AVPlayerItemPlaybackStalled,
+            object: playerItem
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleTimeJumped),
+            name: .AVPlayerItemTimeJumped,
+            object: playerItem
+        )
+        
         // Log asset details
         if let asset = playerItem.asset as? AVURLAsset {
             Task {
@@ -105,6 +144,20 @@ class PlaybackViewModel: ObservableObject {
                     }
                 }
             }
+        }
+    }
+    
+    @objc private func handlePlaybackStalled() {
+        logger.debug("[Player] Playback stalled")
+        Task {
+            await updateProgress()
+        }
+    }
+    
+    @objc private func handleTimeJumped() {
+        logger.debug("[Player] Time jumped")
+        Task {
+            await updateProgress()
         }
     }
     
@@ -281,8 +334,10 @@ class PlaybackViewModel: ObservableObject {
     }
     
     func seek(to time: Double) async {
+        logger.debug("[Playback] Seeking to time: \(time)")
         let cmTime = CMTime(seconds: time, preferredTimescale: 1)
         await player?.seek(to: cmTime)
+        // Update progress immediately after seeking
         await updateProgress()
     }
     
@@ -317,8 +372,7 @@ class PlaybackViewModel: ObservableObject {
         guard let item = currentItem,
               let player = player,
               let currentItem = player.currentItem,
-              currentItem.status == .readyToPlay,
-              self.isPlaying else { // Only update if actually playing
+              currentItem.status == .readyToPlay else {
             return
         }
         
@@ -328,7 +382,7 @@ class PlaybackViewModel: ObservableObject {
             try await playbackService.updatePlaybackProgress(
                 for: item,
                 positionTicks: positionTicks,
-                isPaused: false // Always false here since we only call this when playing
+                isPaused: !self.isPlaying // Use current playing state
             )
         } catch {
             logger.error("Failed to update progress: \(error)")
@@ -375,12 +429,14 @@ private final class CleanupStorage {
     weak var player: AVPlayer?
     var timeObserver: Any?
     var statusObserver: NSKeyValueObservation?
+    var timeControlObserver: NSKeyValueObservation?
     
     deinit {
         if let timeObserver = timeObserver {
             player?.removeTimeObserver(timeObserver)
         }
         statusObserver?.invalidate()
+        timeControlObserver?.invalidate()
         player = nil
     }
 } 
