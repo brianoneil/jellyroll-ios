@@ -111,16 +111,48 @@ struct HomeView: View {
                     Text(errorMessage)
                         .foregroundColor(themeManager.currentTheme.primaryTextColor)
                         .padding()
-                } else if libraryViewModel.continueWatching.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "play.circle")
-                            .font(.system(size: 48))
-                            .foregroundStyle(themeManager.currentTheme.accentGradient)
-                        Text("No items to continue watching")
-                            .font(.title3)
-                            .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                } else if libraryViewModel.continueWatching.isEmpty || themeManager.debugEmptyContinueWatching {
+                    ScrollView {
+                        VStack(spacing: 24) {
+                            VStack(spacing: 16) {
+                                Image("jamm-logo")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(height: 72)
+                                    .foregroundStyle(themeManager.currentTheme.accentGradient)
+                                Text("Time to start your next adventure!")
+                                    .font(.title3)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                                Text("Your watch history will appear here")
+                                    .font(.subheadline)
+                                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 40)
+                            
+                            // Recently Added Section
+                            if !libraryViewModel.latestMedia.isEmpty {
+                                VStack(alignment: .leading, spacing: 16) {
+                                    Text("Recently Added")
+                                        .font(.title3)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                                        .padding(.horizontal)
+                                    
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 16) {
+                                            ForEach(libraryViewModel.latestMedia) { item in
+                                                RecentlyAddedCard(item: item)
+                                                    .frame(width: 160)
+                                            }
+                                        }
+                                        .padding(.horizontal)
+                                    }
+                                }
+                            }
+                        }
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ScrollView {
                         VStack(spacing: 24) {

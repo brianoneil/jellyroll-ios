@@ -14,6 +14,7 @@ class ThemeManager: ObservableObject {
     }
     
     @Published var debugImageLoading: Bool = false
+    @Published var debugEmptyContinueWatching: Bool = false
     
     init(initialTheme: Theme? = nil) {
         if let theme = initialTheme {
@@ -28,6 +29,7 @@ class ThemeManager: ObservableObject {
         
         // Load debug settings
         debugImageLoading = UserDefaults.standard.bool(forKey: "debugImageLoading")
+        debugEmptyContinueWatching = UserDefaults.standard.bool(forKey: "debugEmptyContinueWatching")
     }
     
     func setTheme(_ type: ThemeType) {
@@ -42,6 +44,11 @@ class ThemeManager: ObservableObject {
     func toggleDebugImageLoading() {
         debugImageLoading.toggle()
         UserDefaults.standard.set(debugImageLoading, forKey: "debugImageLoading")
+    }
+    
+    func toggleDebugEmptyContinueWatching() {
+        debugEmptyContinueWatching.toggle()
+        UserDefaults.standard.set(debugEmptyContinueWatching, forKey: "debugEmptyContinueWatching")
     }
 }
 

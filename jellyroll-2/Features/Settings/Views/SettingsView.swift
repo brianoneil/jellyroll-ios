@@ -187,6 +187,12 @@ struct SettingsView: View {
                             set: { _ in themeManager.toggleDebugImageLoading() }
                         ))
                         .tint(themeManager.currentTheme.accentColor)
+                        
+                        Toggle("Simulate Empty Continue Watching", isOn: Binding(
+                            get: { themeManager.debugEmptyContinueWatching },
+                            set: { _ in themeManager.toggleDebugEmptyContinueWatching() }
+                        ))
+                        .tint(themeManager.currentTheme.accentColor)
                     }
                     #endif
                 }
