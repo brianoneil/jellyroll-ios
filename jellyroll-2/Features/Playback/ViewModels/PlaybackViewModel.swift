@@ -345,7 +345,12 @@ class PlaybackViewModel: ObservableObject {
         // Stop playback session with Jellyfin
         if let item = currentItem {
             do {
-                try await playbackService.stopPlaybackSession(for: item)
+                let positionTicks = PlaybackProgressUtility.secondsToTicks(self.currentTime)
+                logger.debug("[Playback] Stopping playback session at position: \(self.currentTime), ticks: \(positionTicks)")
+                try await playbackService.stopPlaybackSession(
+                    for: item,
+                    positionTicks: positionTicks
+                )
             } catch {
                 logger.error("Failed to stop playback session: \(error)")
             }

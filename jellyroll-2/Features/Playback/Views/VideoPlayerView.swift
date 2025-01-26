@@ -73,7 +73,10 @@ struct VideoPlayerView: View {
                         
                         // Close button
                         Button(action: {
-                            dismiss()
+                            Task { @MainActor in
+                                await viewModel.cleanup()
+                                dismiss()
+                            }
                         }) {
                             Text("Close")
                                 .font(.headline)

@@ -450,7 +450,7 @@ class PlaybackService: NSObject, ObservableObject {
     }
 
     /// Stops the current playback session
-    func stopPlaybackSession(for item: MediaItem) async throws {
+    func stopPlaybackSession(for item: MediaItem, positionTicks: Int64) async throws {
         let (baseURL, token) = try getAuthenticatedBaseURL()
         
         let sessionURL = baseURL
@@ -466,9 +466,9 @@ class PlaybackService: NSObject, ObservableObject {
         let sessionData: [String: Any] = [
             "ItemId": item.id,
             "MediaSourceId": item.id,
-            "PositionTicks": 0,
+            "PositionTicks": positionTicks,
             "PlaySessionId": currentPlaySessionId ?? UUID().uuidString,
-            "IsPaused": true,
+            "IsPaused": false,
             "IsMuted": false,
             "VolumeLevel": 100,
             "MaxStreamingBitrate": 140000000,
@@ -493,7 +493,7 @@ class PlaybackService: NSObject, ObservableObject {
             // Clear the session ID after successful stop
             currentPlaySessionId = nil
         } catch {
-            logger.error("Error stopping playback session: \(error.localizedDescription)")
+            logger.error("Error stopping playback session: \(error)")
             throw PlaybackError.networkError(error)
         }
     }
