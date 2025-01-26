@@ -4,7 +4,7 @@ import OSLog
 @MainActor
 class LibraryViewModel: ObservableObject {
     private let libraryService = LibraryService.shared
-    private let logger = Logger(subsystem: "com.jellyroll.app", category: "LibraryViewModel")
+    private let logger = Logger(subsystem: "com.jammplayer.app", category: "LibraryViewModel")
     
     @Published var libraries: [LibraryItem] = []
     @Published var continueWatching: [MediaItem] = []

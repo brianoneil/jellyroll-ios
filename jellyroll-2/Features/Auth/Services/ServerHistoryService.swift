@@ -3,7 +3,7 @@ import OSLog
 
 class ServerHistoryService {
     static let shared = ServerHistoryService()
-    private let logger = Logger(subsystem: "com.jellyroll.app", category: "ServerHistory")
+    private let logger = Logger(subsystem: "com.jammplayer.app", category: "ServerHistory")
     private let serverHistoryKey = "server_history"
     private let maxServerHistory = 5
     

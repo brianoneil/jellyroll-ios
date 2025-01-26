@@ -14,9 +14,9 @@ enum LibraryError: Error {
 class LibraryService {
     static let shared = LibraryService()
     private let authService = AuthenticationService.shared
-    private let logger = Logger(subsystem: "com.jellyroll.app", category: "LibraryService")
+    private let logger = Logger(subsystem: "com.jammplayer.app", category: "LibraryService")
     
-    private let clientName = "Jellyroll"
+    private let clientName = "JammPlayer"
     private let clientVersion = "1.0.0"
     private let deviceId: String = {
         #if os(iOS)

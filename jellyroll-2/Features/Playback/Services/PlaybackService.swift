@@ -18,7 +18,7 @@ protocol DownloadStatePersistable {
 
 /// Concrete implementation of download state persistence using UserDefaults
 class UserDefaultsDownloadStatePersistence: DownloadStatePersistable {
-    private let logger = Logger(subsystem: "com.jellyroll.app", category: "DownloadStatePersistence")
+    private let logger = Logger(subsystem: "com.jammplayer.app", category: "DownloadStatePersistence")
     private let storageKey = "downloadStates"
     
     func saveStates(_ states: [String: PlaybackService.DownloadState]) throws {
@@ -45,7 +45,7 @@ class UserDefaultsDownloadStatePersistence: DownloadStatePersistable {
 class PlaybackService: NSObject, ObservableObject {
     static let shared = PlaybackService()
     private let authService = AuthenticationService.shared
-    private let logger = Logger(subsystem: "com.jellyroll.app", category: "PlaybackService")
+    private let logger = Logger(subsystem: "com.jammplayer.app", category: "PlaybackService")
     private let statePersistence: DownloadStatePersistable
     
     @Published private(set) var activeDownloads: [String: DownloadState] = [:] {
@@ -64,7 +64,7 @@ class PlaybackService: NSObject, ObservableObject {
     private var processingTasks: Set<Int> = []
     
     private lazy var downloadSession: URLSession = {
-        let config = URLSessionConfiguration.background(withIdentifier: "com.jellyroll.app.download")
+        let config = URLSessionConfiguration.background(withIdentifier: "com.jammplayer.app.download")
         config.isDiscretionary = false
         config.sessionSendsLaunchEvents = true
         let queue = OperationQueue()

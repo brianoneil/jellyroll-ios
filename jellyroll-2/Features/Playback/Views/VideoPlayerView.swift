@@ -124,7 +124,7 @@ struct AVPlayerControllerRepresentable: UIViewControllerRepresentable {
     let player: AVPlayer
     let dismiss: DismissAction
     let viewModel: PlaybackViewModel
-    private let logger = Logger(subsystem: "com.jellyroll.app", category: "AVPlayerController")
+    private let logger = Logger(subsystem: "com.jammplayer.app", category: "AVPlayerController")
     
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let controller = AVPlayerViewController()

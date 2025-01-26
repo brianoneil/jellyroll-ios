@@ -5,7 +5,7 @@ struct ContinueWatchingCard: View {
     let item: MediaItem
     let isSelected: Bool
     @EnvironmentObject private var themeManager: ThemeManager
-    private let logger = Logger(subsystem: "com.jellyroll.app", category: "ContinueWatchingCard")
+    private let logger = Logger(subsystem: "com.jammplayer.app", category: "ContinueWatchingCard")
     @State private var showingPlayer = false
     
     private var progressPercentage: Double {

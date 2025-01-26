@@ -6,7 +6,7 @@ import AVFoundation
 @MainActor
 class PlaybackViewModel: ObservableObject {
     private let playbackService = PlaybackService.shared
-    private let logger = Logger(subsystem: "com.jellyroll.app", category: "PlaybackViewModel")
+    private let logger = Logger(subsystem: "com.jammplayer.app", category: "PlaybackViewModel")
     @Published private(set) var player: AVPlayer?
     private var timeObserver: Any?
     

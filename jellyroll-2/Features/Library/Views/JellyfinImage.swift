@@ -17,7 +17,7 @@ struct JellyfinImage: View {
     @EnvironmentObject private var themeManager: ThemeManager
     private let imageService = ImageService.shared
     private let imageCache = ImageCacheService.shared
-    private let logger = Logger(subsystem: "com.jellyroll.app", category: "JellyfinImage")
+    private let logger = Logger(subsystem: "com.jammplayer.app", category: "JellyfinImage")
     
     init(
         itemId: String,

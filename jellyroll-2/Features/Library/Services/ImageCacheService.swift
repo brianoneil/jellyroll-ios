@@ -19,7 +19,7 @@ enum ImageCacheError: LocalizedError {
 
 actor ImageCacheService {
     static let shared = ImageCacheService()
-    private let logger = Logger(subsystem: "com.jellyroll.app", category: "ImageCache")
+    private let logger = Logger(subsystem: "com.jammplayer.app", category: "ImageCache")
     
     /// Maximum number of images to keep in memory
     private let maxCacheSize = 100

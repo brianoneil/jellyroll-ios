@@ -52,7 +52,7 @@ enum ImageType {
 class ImageService {
     static let shared = ImageService()
     private let authService = AuthenticationService.shared
-    private let logger = Logger(subsystem: "com.jellyroll.app", category: "ImageService")
+    private let logger = Logger(subsystem: "com.jammplayer.app", category: "ImageService")
     
     private init() {}
     

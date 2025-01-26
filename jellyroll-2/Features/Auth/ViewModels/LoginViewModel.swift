@@ -6,7 +6,7 @@ import OSLog
 class LoginViewModel: ObservableObject {
     private let authService = AuthenticationService.shared
     private let serverHistoryService = ServerHistoryService.shared
-    private let logger = Logger(subsystem: "com.jellyroll.app", category: "LoginViewModel")
+    private let logger = Logger(subsystem: "com.jammplayer.app", category: "LoginViewModel")
     
     @Published var serverURL = ""
     @Published var username = ""

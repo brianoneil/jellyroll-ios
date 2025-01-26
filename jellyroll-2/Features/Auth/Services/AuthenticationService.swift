@@ -37,7 +37,7 @@ enum AuthenticationError: Error {
 class AuthenticationService {
     static let shared = AuthenticationService()
     private let keychainService = KeychainService.shared
-    private let logger = Logger(subsystem: "com.jellyroll.app", category: "Authentication")
+    private let logger = Logger(subsystem: "com.jammplayer.app", category: "Authentication")
     private let config = JellyfinClientConfig.shared
     
     private lazy var jsonDecoder: JSONDecoder = {

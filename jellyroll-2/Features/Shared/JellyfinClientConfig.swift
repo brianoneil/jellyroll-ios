@@ -16,7 +16,7 @@ struct JellyfinClientConfig {
             UserDefaults.standard.set(deviceId, forKey: "jellyfin_device_id")
         }
         
-        clientName = "Jellyroll iOS"
+        clientName = "JammPlayer iOS"
         clientVersion = "1.0.0"
     }
     

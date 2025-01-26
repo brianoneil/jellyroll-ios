@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-private let logger = Logger(subsystem: "com.jellyroll", category: "MediaItem")
+private let logger = Logger(subsystem: "com.jammplayer", category: "MediaItem")
 
 struct MediaItemResponse: Codable {
     let items: [MediaItem]
