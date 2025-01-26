@@ -153,6 +153,9 @@ struct HomeView: View {
                             }
                         }
                     }
+                    .refreshable {
+                        await libraryViewModel.loadLibraries()
+                    }
                 } else {
                     ScrollView {
                         VStack(spacing: 24) {
@@ -223,6 +226,9 @@ struct HomeView: View {
                                 .padding(.top, 8)
                             }
                         }
+                    }
+                    .refreshable {
+                        await libraryViewModel.loadLibraries()
                     }
                 }
             case 1:
