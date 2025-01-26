@@ -246,17 +246,37 @@ class PlaybackViewModel: ObservableObject {
         }
     }
     
-    func togglePlayPause() {
-        if isPlaying {
-            player?.pause()
-        } else {
-            player?.play()
-        }
-        isPlaying.toggle()
+    func togglePlayPause() async {
+        let willPause = self.isPlaying // Store the state before we toggle
+        logger.debug("[Playback] Toggle playback requested - Current state: isPlaying=\(self.isPlaying), willPause=\(willPause)")
         
-        // Report pause state immediately
-        Task {
-            await updateProgress()
+        self.isPlaying.toggle()
+        
+        if willPause {
+            logger.debug("[Playback] Pausing playback")
+            self.player?.pause()
+        } else {
+            logger.debug("[Playback] Resuming playback")
+            self.player?.play()
+        }
+        
+        // Report state change immediately
+        if let item = self.currentItem {
+            let positionTicks = PlaybackProgressUtility.secondsToTicks(self.currentTime)
+            logger.debug("[Playback] Sending progress update - Position: \(self.currentTime), Ticks: \(positionTicks), IsPaused: \(willPause)")
+            
+            do {
+                try await playbackService.updatePlaybackProgress(
+                    for: item,
+                    positionTicks: positionTicks,
+                    isPaused: willPause
+                )
+                logger.debug("[Playback] Progress update successful - IsPaused: \(willPause)")
+            } catch {
+                logger.error("[Playback] Failed to update playback state: \(error)")
+            }
+        } else {
+            logger.error("[Playback] No current item available for progress update")
         }
     }
     
@@ -297,17 +317,18 @@ class PlaybackViewModel: ObservableObject {
         guard let item = currentItem,
               let player = player,
               let currentItem = player.currentItem,
-              currentItem.status == .readyToPlay else {
+              currentItem.status == .readyToPlay,
+              self.isPlaying else { // Only update if actually playing
             return
         }
         
-        let positionTicks = PlaybackProgressUtility.secondsToTicks(currentTime)
+        let positionTicks = PlaybackProgressUtility.secondsToTicks(self.currentTime)
         
         do {
             try await playbackService.updatePlaybackProgress(
                 for: item,
                 positionTicks: positionTicks,
-                isPaused: !isPlaying
+                isPaused: false // Always false here since we only call this when playing
             )
         } catch {
             logger.error("Failed to update progress: \(error)")

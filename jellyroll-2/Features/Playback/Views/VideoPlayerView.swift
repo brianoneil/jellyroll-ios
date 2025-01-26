@@ -1,5 +1,6 @@
 import SwiftUI
 import AVKit
+import os
 
 struct VideoPlayerView: View {
     let item: MediaItem
@@ -16,7 +17,7 @@ struct VideoPlayerView: View {
     var body: some View {
         ZStack {
             if let player = viewModel.player {
-                AVPlayerControllerRepresentable(player: player, dismiss: dismiss)
+                AVPlayerControllerRepresentable(player: player, dismiss: dismiss, viewModel: viewModel)
                     .ignoresSafeArea()
             } else {
                 Color.black // Loading placeholder
@@ -119,6 +120,8 @@ struct VideoPlayerView: View {
 struct AVPlayerControllerRepresentable: UIViewControllerRepresentable {
     let player: AVPlayer
     let dismiss: DismissAction
+    let viewModel: PlaybackViewModel
+    private let logger = Logger(subsystem: "com.jellyroll.app", category: "AVPlayerController")
     
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let controller = AVPlayerViewController()
@@ -136,6 +139,17 @@ struct AVPlayerControllerRepresentable: UIViewControllerRepresentable {
         // Keep controls visible
         controller.showsPlaybackControls = true
         
+        // Add observer for rate changes to detect play/pause
+        NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemTimeJumped,
+            object: player.currentItem,
+            queue: .main
+        ) { _ in
+            logger.debug("[Player] Time jumped notification received")
+        }
+        
+        player.addObserver(context.coordinator, forKeyPath: #keyPath(AVPlayer.timeControlStatus), options: [.old, .new], context: nil)
+        
         return controller
     }
     
@@ -143,28 +157,59 @@ struct AVPlayerControllerRepresentable: UIViewControllerRepresentable {
         if uiViewController.player !== player {
             uiViewController.player = player
         }
-        // Ensure controls remain visible
         uiViewController.showsPlaybackControls = true
     }
     
     func makeCoordinator() -> Coordinator {
-        Coordinator(dismiss: dismiss)
+        Coordinator(dismiss: dismiss, logger: logger, viewModel: viewModel)
     }
     
     class Coordinator: NSObject, AVPlayerViewControllerDelegate {
         let dismiss: DismissAction
+        let logger: Logger
+        let viewModel: PlaybackViewModel
         
-        init(dismiss: DismissAction) {
+        init(dismiss: DismissAction, logger: Logger, viewModel: PlaybackViewModel) {
             self.dismiss = dismiss
+            self.logger = logger
+            self.viewModel = viewModel
             super.init()
         }
         
+        override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+            if keyPath == #keyPath(AVPlayer.timeControlStatus),
+               let player = object as? AVPlayer {
+                let status = player.timeControlStatus
+                switch status {
+                case .paused:
+                    logger.debug("[Player] Player status changed to paused")
+                    Task { @MainActor in
+                        if viewModel.isPlaying { // Only toggle if we're not already in the desired state
+                            await viewModel.togglePlayPause()
+                        }
+                    }
+                case .playing:
+                    logger.debug("[Player] Player status changed to playing")
+                    Task { @MainActor in
+                        if !viewModel.isPlaying { // Only toggle if we're not already in the desired state
+                            await viewModel.togglePlayPause()
+                        }
+                    }
+                case .waitingToPlayAtSpecifiedRate:
+                    logger.debug("[Player] Player status changed to waiting")
+                @unknown default:
+                    logger.debug("[Player] Player status changed to unknown state")
+                }
+            }
+        }
+        
         func playerViewController(_ playerViewController: AVPlayerViewController, willBeginFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator) {
-            // Ensure controls are visible when entering full screen
+            logger.debug("[Player] Will begin full screen presentation")
             playerViewController.showsPlaybackControls = true
         }
         
         func playerViewController(_ playerViewController: AVPlayerViewController, willEndFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator) {
+            logger.debug("[Player] Will end full screen presentation")
             coordinator.animate(alongsideTransition: nil) { _ in
                 self.dismiss()
             }
