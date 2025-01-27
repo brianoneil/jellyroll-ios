@@ -316,6 +316,12 @@ struct SeriesTabView: View {
     let libraries: [LibraryItem]
     @ObservedObject var libraryViewModel: LibraryViewModel
     @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var layoutManager: LayoutManager
+    
+    private var columns: [GridItem] {
+        let columnCount = layoutManager.isLandscape ? 4 : 2
+        return Array(repeating: GridItem(.flexible(), spacing: 16), count: columnCount)
+    }
     
     var body: some View {
         ScrollView {
@@ -331,14 +337,12 @@ struct SeriesTabView: View {
                                     .padding(.horizontal)
                             }
                             
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 16) {
-                                    ForEach(libraryViewModel.getTVShowItems(for: library.id)) { item in
-                                        MovieCard(item: item, style: .grid)
-                                    }
+                            LazyVGrid(columns: columns, spacing: 24) {
+                                ForEach(libraryViewModel.getTVShowItems(for: library.id)) { item in
+                                    MovieCard(item: item, style: .grid)
                                 }
-                                .padding(.horizontal)
                             }
+                            .padding(.horizontal)
                         }
                     }
                 }

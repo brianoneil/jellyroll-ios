@@ -177,7 +177,11 @@ struct MovieCard: View {
         }
         .fullScreenCover(isPresented: $showingDetail) {
             NavigationStack {
-                MovieDetailView(item: item)
+                if item.type.lowercased() == "series" {
+                    SeriesDetailView(item: item)
+                } else {
+                    MovieDetailView(item: item)
+                }
             }
         }
     }
