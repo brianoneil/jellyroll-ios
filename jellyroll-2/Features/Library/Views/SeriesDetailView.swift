@@ -445,12 +445,6 @@ struct OverviewTab: View, SeriesDetailTabView {
 struct CastCrewTab: View, SeriesDetailTabView {
     let item: MediaItem
     @EnvironmentObject private var themeManager: ThemeManager
-    @StateObject private var viewModel: SeriesDetailViewModel
-    
-    init(item: MediaItem) {
-        self.item = item
-        _viewModel = StateObject(wrappedValue: SeriesDetailViewModel(item: item))
-    }
     
     private var cast: [CastMember] {
         item.people.filter { $0.type == "Actor" }
