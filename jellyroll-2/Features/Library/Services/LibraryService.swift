@@ -197,7 +197,7 @@ class LibraryService {
         components.queryItems = [
             URLQueryItem(name: "ParentId", value: libraryId),
             URLQueryItem(name: "Limit", value: String(limit)),
-            URLQueryItem(name: "Fields", value: "Overview,Genres,Tags,ProductionYear,PremiereDate,RunTimeTicks,PlaybackPositionTicks"),
+            URLQueryItem(name: "Fields", value: "Overview,Genres,Tags,ProductionYear,PremiereDate,RunTimeTicks,PlaybackPositionTicks,People"),
             URLQueryItem(name: "SortBy", value: "SortName"),
             URLQueryItem(name: "SortOrder", value: "Ascending")
         ]

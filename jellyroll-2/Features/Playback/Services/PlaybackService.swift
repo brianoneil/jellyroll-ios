@@ -511,7 +511,7 @@ class PlaybackService: NSObject, ObservableObject {
         components.queryItems = [
             URLQueryItem(name: "ParentId", value: parentId),
             URLQueryItem(name: "IncludeItemTypes", value: filter.joined(separator: ",")),
-            URLQueryItem(name: "Fields", value: "Overview,Genres,Tags,ProductionYear,PremiereDate,RunTimeTicks,PlaybackPositionTicks,UserData"),
+            URLQueryItem(name: "Fields", value: "Overview,Genres,Tags,ProductionYear,PremiereDate,RunTimeTicks,PlaybackPositionTicks,UserData,People"),
             URLQueryItem(name: "SortBy", value: "SortName"),
             URLQueryItem(name: "SortOrder", value: "Ascending")
         ]

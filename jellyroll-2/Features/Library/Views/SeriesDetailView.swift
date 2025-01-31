@@ -445,31 +445,183 @@ struct OverviewTab: View, SeriesDetailTabView {
 struct CastCrewTab: View, SeriesDetailTabView {
     let item: MediaItem
     @EnvironmentObject private var themeManager: ThemeManager
+    @StateObject private var viewModel: SeriesDetailViewModel
+    
+    init(item: MediaItem) {
+        self.item = item
+        _viewModel = StateObject(wrappedValue: SeriesDetailViewModel(item: item))
+    }
+    
+    private var cast: [CastMember] {
+        item.people.filter { $0.type == "Actor" }
+    }
+    
+    private var crew: [CastMember] {
+        item.people.filter { $0.type != "Actor" }
+    }
+    
+    // Calculate grid layout based on available width
+    private let columns = [
+        GridItem(.adaptive(minimum: 100, maximum: 120), spacing: 10)
+    ]
+    
+    // Calculate crew grid layout for more items per row
+    private let crewColumns = [
+        GridItem(.adaptive(minimum: 80, maximum: 100), spacing: 8)
+    ]
     
     var body: some View {
         VStack {
+            // Empty space at top to show background image
             Spacer()
-            VStack(spacing: 0) {
-                VStack(alignment: .leading, spacing: 20) {
-                    Text("Cast & Crew")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(themeManager.currentTheme.primaryTextColor)
-                    
-                    // Placeholder for cast & crew list
-                    Text("Cast & Crew information coming soon")
-                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                .frame(height: 160)
+            
+            ScrollView {
+                VStack(spacing: 0) {
+                    VStack(alignment: .leading, spacing: 24) {
+                        // Cast Section
+                        if !cast.isEmpty {
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("Cast")
+                                    .font(.system(size: 24, weight: .bold))
+                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                                
+                                LazyVGrid(columns: columns, spacing: 14) {
+                                    ForEach(cast) { member in
+                                        CastMemberCard(member: member)
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Crew Section
+                        if !crew.isEmpty {
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("Crew")
+                                    .font(.system(size: 24, weight: .bold))
+                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                                    .padding(.top, 8)
+                                
+                                LazyVGrid(columns: crewColumns, spacing: 12) {
+                                    ForEach(crew) { member in
+                                        CrewMemberCard(member: member)
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if cast.isEmpty && crew.isEmpty {
+                            Text("No cast or crew information available")
+                                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.top, 32)
+                        }
+                    }
+                    .padding(24)
                 }
-                .padding(24)
+                .background(.ultraThinMaterial)
+                .background(themeManager.currentTheme.surfaceColor.opacity(0.3))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .padding(.horizontal, 16)
+                .padding(.bottom, 32)
             }
-            .background(.ultraThinMaterial)
-            .background(themeManager.currentTheme.surfaceColor.opacity(0.3))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .padding(.horizontal, 16)
-            .padding(.bottom, 32)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.clear)
         .ignoresSafeArea()
+    }
+}
+
+struct CircularProfileImage: View {
+    let itemId: String
+    let imageTag: String?
+    let size: CGFloat
+    @EnvironmentObject private var themeManager: ThemeManager
+    
+    var body: some View {
+        Group {
+            if imageTag != nil {
+                JellyfinImage(
+                    itemId: itemId,
+                    imageType: .primary,
+                    aspectRatio: 1,
+                    cornerRadius: 0,
+                    fallbackIcon: "person.circle.fill"
+                )
+                .frame(width: size, height: size)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(themeManager.currentTheme.surfaceColor.opacity(0.1), lineWidth: 1))
+            } else {
+                Image(systemName: "person.circle.fill")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: size, height: size)
+                    .foregroundColor(themeManager.currentTheme.surfaceColor)
+            }
+        }
+    }
+}
+
+struct CastMemberCard: View {
+    let member: CastMember
+    @EnvironmentObject private var themeManager: ThemeManager
+    
+    var body: some View {
+        VStack(alignment: .center, spacing: 8) {
+            // Profile Image
+            CircularProfileImage(
+                itemId: member.id,
+                imageTag: member.imageTag,
+                size: 90
+            )
+            
+            // Name and Role
+            VStack(alignment: .center, spacing: 4) {
+                Text(member.name)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                    .lineLimit(1)
+                
+                Text(member.role)
+                    .font(.system(size: 11))
+                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(width: 90)
+        }
+        .padding(.vertical, 8)
+    }
+}
+
+struct CrewMemberCard: View {
+    let member: CastMember
+    @EnvironmentObject private var themeManager: ThemeManager
+    
+    var body: some View {
+        VStack(alignment: .center, spacing: 6) {
+            // Profile Image
+            CircularProfileImage(
+                itemId: member.id,
+                imageTag: member.imageTag,
+                size: 65
+            )
+            
+            // Name and Role
+            VStack(alignment: .center, spacing: 2) {
+                Text(member.name)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                    .lineLimit(1)
+                
+                Text(member.type)
+                    .font(.system(size: 10))
+                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                    .lineLimit(1)
+            }
+            .frame(width: 80)
+        }
+        .padding(.vertical, 6)
     }
 }
 

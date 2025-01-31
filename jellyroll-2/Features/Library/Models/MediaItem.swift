@@ -67,6 +67,22 @@ struct MediaItemResponse: Codable {
     }
 }
 
+struct CastMember: Codable, Identifiable {
+    let id: String
+    let name: String
+    let role: String
+    let type: String
+    let imageTag: String?
+    
+    private enum CodingKeys: String, CodingKey {
+        case id = "Id"
+        case name = "Name"
+        case role = "Role"
+        case type = "Type"
+        case imageTag = "PrimaryImageTag"
+    }
+}
+
 struct MediaItem: Codable, Identifiable {
     let id: String
     let name: String
@@ -82,6 +98,7 @@ struct MediaItem: Codable, Identifiable {
     let backdropImageTags: [String]
     let imageTags: [String: String]
     let userData: UserData
+    let people: [CastMember]
     
     // Series specific
     let seriesId: String?
@@ -122,6 +139,7 @@ struct MediaItem: Codable, Identifiable {
         case albumArtist = "AlbumArtist"
         case artists = "Artists"
         case album = "Album"
+        case people = "People"
     }
     
     init(from decoder: Decoder) throws {
@@ -166,6 +184,16 @@ struct MediaItem: Codable, Identifiable {
         album = try container.decodeIfPresent(String.self, forKey: .album)
         
         userData = try container.decode(UserData.self, forKey: .userData)
+        
+        // Debug logging for cast and crew
+        let decodedName = name // Capture name before using in closure
+        if let peopleData = try? container.decodeIfPresent([CastMember].self, forKey: .people) {
+            logger.debug("Found \(peopleData.count) cast/crew members for \(decodedName)")
+            people = peopleData
+        } else {
+            logger.debug("No cast/crew data found for \(decodedName)")
+            people = []
+        }
     }
     
     // Convenience initializer for offline content
@@ -213,6 +241,8 @@ struct MediaItem: Codable, Identifiable {
                 key: ""
             )
         }
+        
+        self.people = [] // Cast members are not provided in the dictionary
     }
     
     var formattedRuntime: String? {
