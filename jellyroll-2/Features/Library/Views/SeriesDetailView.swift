@@ -492,7 +492,7 @@ struct EpisodesTab: View, SeriesDetailTabView {
             // Content section with background
             VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Seasons Horizontal Scroll
+                    // Seasons Horizontal Scroll - Always visible
                     ScrollView(.horizontal, showsIndicators: false) {
                         LazyHStack(spacing: 16) {
                             ForEach(viewModel.seasons) { season in
@@ -510,26 +510,25 @@ struct EpisodesTab: View, SeriesDetailTabView {
                     .frame(height: 160)
                     .padding(.top, 24)
                     
-                    // Episodes List
-                    if viewModel.isLoading {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 20)
-                    } else if let error = viewModel.error {
-                        Text(error.localizedDescription)
-                            .foregroundColor(.red)
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 20)
-                    } else {
-                        ScrollView {
-                            LazyVStack(spacing: 16) {
+                    // Episodes List with contained loading state
+                    ScrollView {
+                        LazyVStack(spacing: 16) {
+                            if viewModel.isLoading {
+                                ForEach(0..<3) { _ in
+                                    EpisodeRowPlaceholder()
+                                }
+                            } else if let error = viewModel.error {
+                                Text(error.localizedDescription)
+                                    .foregroundColor(.red)
+                                    .frame(maxWidth: .infinity)
+                            } else {
                                 ForEach(viewModel.episodes) { episode in
                                     EpisodeRow(episode: episode)
                                 }
                             }
-                            .padding(.horizontal, 24)
-                            .padding(.top, 20)
                         }
+                        .padding(.horizontal, 24)
+                        .padding(.top, 20)
                     }
                 }
                 .padding(.bottom, 24)
@@ -538,7 +537,7 @@ struct EpisodesTab: View, SeriesDetailTabView {
             .background(themeManager.currentTheme.surfaceColor.opacity(0.3))
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .padding(.horizontal, 16)
-            .padding(.trailing, 60) // Add extra padding on the right for page controls
+            .padding(.trailing, 60)
             .padding(.bottom, 32)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -562,7 +561,8 @@ struct SeasonCard: View {
                 imageType: .primary,
                 aspectRatio: 2/3,
                 cornerRadius: 8,
-                fallbackIcon: "tv"
+                fallbackIcon: "tv",
+                blurHash: season.imageBlurHashes["Primary"]?.values.first
             )
             .frame(width: 90, height: 135)
             .overlay(
@@ -581,44 +581,159 @@ struct SeasonCard: View {
 struct EpisodeRow: View {
     let episode: MediaItem
     @EnvironmentObject private var themeManager: ThemeManager
+    @State private var showingPlayer = false
+    
+    private var hasProgress: Bool {
+        episode.userData.playbackPositionTicks ?? 0 > 0
+    }
+    
+    private var progressPercentage: Double {
+        PlaybackProgressUtility.calculateProgress(
+            positionTicks: episode.userData.playbackPositionTicks,
+            totalTicks: episode.runTimeTicks
+        ) ?? 0
+    }
     
     var body: some View {
-        HStack(spacing: 16) {
-            // Episode Thumbnail
-            JellyfinImage(
-                itemId: episode.id,
-                imageType: .primary,
-                aspectRatio: 16/9,
-                cornerRadius: 8,
-                fallbackIcon: "tv"
-            )
-            .frame(width: 140, height: 80)
+        VStack(alignment: .leading, spacing: 12) {
+            // Episode Title
+            Text(episode.name)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(themeManager.currentTheme.primaryTextColor)
             
-            // Episode Info
-            VStack(alignment: .leading, spacing: 4) {
-                Text(episode.name)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
-                
-                if let overview = episode.overview {
-                    Text(overview)
-                        .font(.system(size: 14))
-                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                        .lineLimit(2)
+            HStack(alignment: .top, spacing: 16) {
+                // Episode Thumbnail with Progress Bar
+                VStack(spacing: 0) {
+                    JellyfinImage(
+                        itemId: episode.id,
+                        imageType: .primary,
+                        aspectRatio: 16/9,
+                        cornerRadius: 8,
+                        fallbackIcon: "tv",
+                        blurHash: episode.imageBlurHashes["Primary"]?.values.first
+                    )
+                    .frame(width: 140, height: 80)
+                    
+                    if hasProgress {
+                        GeometryReader { metrics in
+                            ZStack(alignment: .leading) {
+                                Rectangle()
+                                    .fill(themeManager.currentTheme.surfaceColor.opacity(0.3))
+                                    .frame(height: 3)
+                                
+                                Rectangle()
+                                    .fill(themeManager.currentTheme.accentGradient)
+                                    .frame(width: max(0, min(metrics.size.width * progressPercentage, metrics.size.width)), height: 3)
+                            }
+                        }
+                        .frame(height: 3)
+                        .padding(.top, 8)
+                    }
                 }
                 
-                if let runtime = episode.formattedRuntime {
-                    Text(runtime)
-                        .font(.system(size: 12))
-                        .foregroundColor(themeManager.currentTheme.tertiaryTextColor)
+                // Episode Metadata and Play Button
+                VStack(alignment: .leading, spacing: 8) {
+                    if let episodeInfo = episode.episodeInfo {
+                        Text(episodeInfo)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                    }
+                    
+                    if let runtime = episode.formattedRuntime {
+                        Text(runtime)
+                            .font(.system(size: 12))
+                            .foregroundColor(themeManager.currentTheme.tertiaryTextColor)
+                    }
+                    
+                    // Play Button
+                    Button(action: { showingPlayer = true }) {
+                        HStack {
+                            Image(systemName: "play.fill")
+                            Text(hasProgress ? "Resume" : "Play")
+                        }
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(themeManager.currentTheme.accentGradient)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                    }
+                    .frame(maxWidth: 120)
                 }
+                
+                Spacer()
             }
             
-            Spacer()
+            // Episode Overview
+            if let overview = episode.overview {
+                Text(overview)
+                    .font(.system(size: 14))
+                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                    .lineLimit(2)
+            }
         }
         .padding(12)
         .background(themeManager.currentTheme.surfaceColor.opacity(0.2))
         .cornerRadius(12)
+        .fullScreenCover(isPresented: $showingPlayer) {
+            VideoPlayerView(
+                item: episode,
+                startTime: episode.userData.playbackPositionTicks.map { PlaybackProgressUtility.ticksToSeconds($0) }
+            )
+        }
+    }
+}
+
+// Update the placeholder to match the new layout
+struct EpisodeRowPlaceholder: View {
+    @EnvironmentObject private var themeManager: ThemeManager
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Title placeholder
+            Rectangle()
+                .fill(themeManager.currentTheme.surfaceColor.opacity(0.3))
+                .frame(height: 16)
+                .frame(width: 200)
+            
+            HStack(alignment: .top, spacing: 16) {
+                // Thumbnail placeholder
+                Rectangle()
+                    .fill(themeManager.currentTheme.surfaceColor.opacity(0.3))
+                    .frame(width: 140, height: 80)
+                    .cornerRadius(8)
+                
+                // Metadata placeholders
+                VStack(alignment: .leading, spacing: 8) {
+                    Rectangle()
+                        .fill(themeManager.currentTheme.surfaceColor.opacity(0.3))
+                        .frame(height: 14)
+                        .frame(width: 80)
+                    
+                    Rectangle()
+                        .fill(themeManager.currentTheme.surfaceColor.opacity(0.3))
+                        .frame(height: 12)
+                        .frame(width: 60)
+                }
+                
+                Spacer()
+            }
+            
+            // Overview placeholder
+            Rectangle()
+                .fill(themeManager.currentTheme.surfaceColor.opacity(0.3))
+                .frame(height: 12)
+                .frame(maxWidth: .infinity)
+            
+            Rectangle()
+                .fill(themeManager.currentTheme.surfaceColor.opacity(0.3))
+                .frame(height: 12)
+                .frame(maxWidth: .infinity)
+        }
+        .padding(12)
+        .background(themeManager.currentTheme.surfaceColor.opacity(0.2))
+        .cornerRadius(12)
+        .redacted(reason: .placeholder)
     }
 }
 
