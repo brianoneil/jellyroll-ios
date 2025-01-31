@@ -84,6 +84,7 @@ struct MediaItem: Codable, Identifiable {
     let userData: UserData
     
     // Series specific
+    let seriesId: String?
     let seriesName: String?
     let seasonName: String?
     let episodeTitle: String?
@@ -111,6 +112,7 @@ struct MediaItem: Codable, Identifiable {
         case backdropImageTags = "BackdropImageTags"
         case imageTags = "ImageTags"
         case userData = "UserData"
+        case seriesId = "SeriesId"
         case seriesName = "SeriesName"
         case seasonName = "SeasonName"
         case episodeTitle = "EpisodeTitle"
@@ -151,6 +153,7 @@ struct MediaItem: Codable, Identifiable {
         backdropImageTags = try container.decode([String].self, forKey: .backdropImageTags)
         imageTags = try container.decode([String: String].self, forKey: .imageTags)
         
+        seriesId = try container.decodeIfPresent(String.self, forKey: .seriesId)
         seriesName = try container.decodeIfPresent(String.self, forKey: .seriesName)
         seasonName = try container.decodeIfPresent(String.self, forKey: .seasonName)
         episodeTitle = try container.decodeIfPresent(String.self, forKey: .episodeTitle)
@@ -181,6 +184,7 @@ struct MediaItem: Codable, Identifiable {
         self.backdropImageTags = dictionary["BackdropImageTags"] as? [String] ?? []
         self.imageTags = dictionary["ImageTags"] as? [String: String] ?? [:]
         
+        self.seriesId = dictionary["SeriesId"] as? String
         self.seriesName = dictionary["SeriesName"] as? String
         self.seasonName = dictionary["SeasonName"] as? String
         self.episodeTitle = dictionary["EpisodeTitle"] as? String

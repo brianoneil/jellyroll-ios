@@ -594,6 +594,11 @@ struct EpisodeRow: View {
         ) ?? 0
     }
     
+    private var imageId: String {
+        // Use the series ID for the image if available, otherwise fall back to episode ID
+        episode.seriesId ?? episode.id
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Episode Title
@@ -605,7 +610,7 @@ struct EpisodeRow: View {
                 // Episode Thumbnail with Progress Bar
                 VStack(spacing: 0) {
                     JellyfinImage(
-                        itemId: episode.id,
+                        itemId: imageId,
                         imageType: .primary,
                         aspectRatio: 16/9,
                         cornerRadius: 8,

@@ -23,11 +23,19 @@ struct ContinueWatchingCard: View {
         }
     }
     
+    private var imageId: String {
+        // For episodes, use the series ID if available
+        if item.type.lowercased() == "episode", let seriesId = item.seriesId {
+            return seriesId
+        }
+        return item.id
+    }
+    
     var body: some View {
         ZStack(alignment: .center) {
             // Main Image with Metadata
             JellyfinImage(
-                itemId: item.id,
+                itemId: imageId,
                 imageType: .primary,
                 aspectRatio: 2/3,
                 cornerRadius: 12,
@@ -42,6 +50,14 @@ struct ContinueWatchingCard: View {
                 VStack {
                     Spacer()
                     VStack(alignment: .leading, spacing: 4) {
+                        // Show series name first for episodes
+                        if item.type.lowercased() == "episode", let seriesName = item.seriesName {
+                            Text(seriesName)
+                                .font(.system(size: 14))
+                                .foregroundColor(.white.opacity(0.9))
+                                .lineLimit(1)
+                        }
+                        
                         Text(item.name)
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.white)
