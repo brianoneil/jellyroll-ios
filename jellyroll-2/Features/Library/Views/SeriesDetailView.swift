@@ -129,10 +129,10 @@ enum SeriesDetailLayouts {
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 36)
-                        Spacer()
+                            Spacer()
                     }
                     .safeAreaInset(edge: .top) { Color.clear.frame(height: 24) }
-                    
+                            
                     // Content Card with blur effect
                     VStack(spacing: 0) {
                         // Content
@@ -193,8 +193,8 @@ enum SeriesDetailLayouts {
                             // Overview
                             if let overview = item.overview {
                                 Text(overview)
-                                    .font(.system(size: 15))
-                                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                            .font(.system(size: 15))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                                     .lineSpacing(4)
                                     .lineLimit(3)
                             }
@@ -349,24 +349,24 @@ enum SeriesDetailLayouts {
                                 .foregroundColor(themeManager.currentTheme.primaryTextColor)
                             }
                             .padding(.horizontal, 24)
-                            
-                            // Overview
-                            if let overview = item.overview {
-                                Text(overview)
-                                    .font(.system(size: 15))
-                                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                                    .lineSpacing(4)
+                    
+                    // Overview
+                    if let overview = item.overview {
+                            Text(overview)
+                                .font(.system(size: 15))
+                                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                                .lineSpacing(4)
                                     .lineLimit(3)
-                                    .padding(.horizontal, 24)
-                            }
-                        }
-                        .padding(.vertical, 24)
+                        .padding(.horizontal, 24)
                     }
                 }
+                .padding(.vertical, 24)
+            }
+        }
             }
             .background(themeManager.currentTheme.backgroundColor)
             .ignoresSafeArea(edges: .all)
-            .navigationBarHidden(true)
+        .navigationBarHidden(true)
         }
     }
 } 
