@@ -476,31 +476,149 @@ struct CastCrewTab: View, SeriesDetailTabView {
 struct EpisodesTab: View, SeriesDetailTabView {
     let item: MediaItem
     @EnvironmentObject private var themeManager: ThemeManager
+    @StateObject private var viewModel: SeriesDetailViewModel
+    
+    init(item: MediaItem) {
+        self.item = item
+        _viewModel = StateObject(wrappedValue: SeriesDetailViewModel(item: item))
+    }
     
     var body: some View {
         VStack {
+            // Empty space at top to show background image
             Spacer()
+                .frame(height: 160)
+            
+            // Content section with background
             VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 20) {
-                    Text("Episodes")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                    // Seasons Horizontal Scroll
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        LazyHStack(spacing: 16) {
+                            ForEach(viewModel.seasons) { season in
+                                SeasonCard(
+                                    season: season,
+                                    isSelected: season.id == viewModel.selectedSeason?.id
+                                )
+                                .onTapGesture {
+                                    viewModel.selectSeason(season)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 24)
+                    }
+                    .frame(height: 160)
+                    .padding(.top, 24)
                     
-                    // Placeholder for episodes list
-                    Text("Episodes list coming soon")
-                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                    // Episodes List
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 20)
+                    } else if let error = viewModel.error {
+                        Text(error.localizedDescription)
+                            .foregroundColor(.red)
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 20)
+                    } else {
+                        ScrollView {
+                            LazyVStack(spacing: 16) {
+                                ForEach(viewModel.episodes) { episode in
+                                    EpisodeRow(episode: episode)
+                                }
+                            }
+                            .padding(.horizontal, 24)
+                            .padding(.top, 20)
+                        }
+                    }
                 }
-                .padding(24)
+                .padding(.bottom, 24)
             }
             .background(.ultraThinMaterial)
             .background(themeManager.currentTheme.surfaceColor.opacity(0.3))
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .padding(.horizontal, 16)
+            .padding(.trailing, 60) // Add extra padding on the right for page controls
             .padding(.bottom, 32)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.clear)
         .ignoresSafeArea()
+        .onAppear {
+            viewModel.loadSeasons(for: item.id)
+        }
+    }
+}
+
+struct SeasonCard: View {
+    let season: MediaItem
+    let isSelected: Bool
+    @EnvironmentObject private var themeManager: ThemeManager
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            JellyfinImage(
+                itemId: season.id,
+                imageType: .primary,
+                aspectRatio: 2/3,
+                cornerRadius: 8,
+                fallbackIcon: "tv"
+            )
+            .frame(width: 90, height: 135)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(isSelected ? themeManager.currentTheme.accentColor : Color.clear, lineWidth: 2)
+            )
+            
+            Text(season.name)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                .lineLimit(1)
+        }
+    }
+}
+
+struct EpisodeRow: View {
+    let episode: MediaItem
+    @EnvironmentObject private var themeManager: ThemeManager
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // Episode Thumbnail
+            JellyfinImage(
+                itemId: episode.id,
+                imageType: .primary,
+                aspectRatio: 16/9,
+                cornerRadius: 8,
+                fallbackIcon: "tv"
+            )
+            .frame(width: 140, height: 80)
+            
+            // Episode Info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(episode.name)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                
+                if let overview = episode.overview {
+                    Text(overview)
+                        .font(.system(size: 14))
+                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                        .lineLimit(2)
+                }
+                
+                if let runtime = episode.formattedRuntime {
+                    Text(runtime)
+                        .font(.system(size: 12))
+                        .foregroundColor(themeManager.currentTheme.tertiaryTextColor)
+                }
+            }
+            
+            Spacer()
+        }
+        .padding(12)
+        .background(themeManager.currentTheme.surfaceColor.opacity(0.2))
+        .cornerRadius(12)
     }
 }
 

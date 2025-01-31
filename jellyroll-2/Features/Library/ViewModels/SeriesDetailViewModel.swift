@@ -1,99 +1,69 @@
 import Foundation
 import SwiftUI
 
+@MainActor
 class SeriesDetailViewModel: ObservableObject {
     let item: MediaItem
     @Published var seasons: [MediaItem] = []
-    @Published var episodes: [String: [MediaItem]] = [:] // Season ID -> Episodes
-    @Published var isLoadingSeasons = false
-    @Published var isLoadingEpisodes = false
-    @Published var error: String?
+    @Published var selectedSeason: MediaItem?
+    @Published var episodes: [MediaItem] = []
+    @Published var isLoading = false
+    @Published var error: Error?
+    
+    private let playbackService: PlaybackService
     
     init(item: MediaItem) {
         self.item = item
+        self.playbackService = PlaybackService.shared
     }
     
-    @MainActor
-    func loadSeasons() async {
-        isLoadingSeasons = true
-        error = nil
+    func loadSeasons(for seriesId: String) {
+        isLoading = true
         
-        // TODO: Implement API call to load seasons
-        // This would fetch seasons from your Jellyfin API
-        // For now, using mock data
-        await mockLoadSeasons()
-        
-        isLoadingSeasons = false
+        Task {
+            do {
+                let seasons = try await playbackService.getChildren(
+                    parentId: seriesId,
+                    filter: ["Season"]
+                )
+                self.seasons = seasons.sorted(by: { (a: MediaItem, b: MediaItem) in
+                    return (a.seasonNumber ?? 0) < (b.seasonNumber ?? 0)
+                })
+                self.selectedSeason = seasons.first
+                self.isLoading = false
+                
+                if let firstSeason = seasons.first {
+                    await loadEpisodes(for: firstSeason.id)
+                }
+            } catch {
+                self.error = error
+                self.isLoading = false
+            }
+        }
     }
     
-    @MainActor
     func loadEpisodes(for seasonId: String) async {
-        if episodes[seasonId] != nil { return }
+        self.isLoading = true
         
-        isLoadingEpisodes = true
-        error = nil
-        
-        // TODO: Implement API call to load episodes
-        // This would fetch episodes for the given season from your Jellyfin API
-        // For now, using mock data
-        await mockLoadEpisodes(for: seasonId)
-        
-        isLoadingEpisodes = false
-    }
-    
-    // Mock data loading - Replace with actual API calls
-    private func mockLoadSeasons() async {
-        // Simulate network delay
-        try? await Task.sleep(nanoseconds: 1_000_000_000)
-        
-        // Create mock seasons
-        let mockSeasons = (1...3).map { seasonNumber in
-            MediaItem(from: [
-                "Id": "season_\(seasonNumber)",
-                "Name": "Season \(seasonNumber)",
-                "Type": "Season",
-                "ParentIndexNumber": seasonNumber,
-                "Overview": "Season \(seasonNumber) of \(item.name)",
-                "ImageTags": ["Primary": "tag"],
-                "ImageBlurHashes": [:],
-                "BackdropImageTags": [],
-                "Genres": [],
-                "Tags": []
-            ])
-        }
-        
-        await MainActor.run {
-            self.seasons = mockSeasons
+        do {
+            let episodes = try await playbackService.getChildren(
+                parentId: seasonId,
+                filter: ["Episode"]
+            )
+            self.episodes = episodes.sorted(by: { (a: MediaItem, b: MediaItem) in
+                return (a.episodeNumber ?? 0) < (b.episodeNumber ?? 0)
+            })
+            self.isLoading = false
+        } catch {
+            self.error = error
+            self.isLoading = false
         }
     }
     
-    private func mockLoadEpisodes(for seasonId: String) async {
-        // Simulate network delay
-        try? await Task.sleep(nanoseconds: 1_000_000_000)
-        
-        // Extract season number from ID
-        let seasonNumber = Int(seasonId.split(separator: "_")[1]) ?? 1
-        
-        // Create mock episodes
-        let mockEpisodes = (1...10).map { episodeNumber in
-            MediaItem(from: [
-                "Id": "episode_s\(seasonNumber)e\(episodeNumber)",
-                "Name": "Episode \(episodeNumber)",
-                "Type": "Episode",
-                "ParentIndexNumber": seasonNumber,
-                "IndexNumber": episodeNumber,
-                "Overview": "Episode \(episodeNumber) of Season \(seasonNumber)",
-                "ImageTags": ["Primary": "tag"],
-                "ImageBlurHashes": [:],
-                "BackdropImageTags": [],
-                "Genres": [],
-                "Tags": [],
-                "RunTimeTicks": Int64(2_400_000_000) // 40 minutes in ticks
-            ])
-        }
-        
-        await MainActor.run {
-            self.episodes[seasonId] = mockEpisodes
+    func selectSeason(_ season: MediaItem) {
+        selectedSeason = season
+        Task {
+            await loadEpisodes(for: season.id)
         }
     }
 } 

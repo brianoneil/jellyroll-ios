@@ -497,6 +497,58 @@ class PlaybackService: NSObject, ObservableObject {
             throw PlaybackError.networkError(error)
         }
     }
+
+    /// Fetches child items (seasons or episodes) for a given parent item
+    func getChildren(parentId: String, filter: [String]) async throws -> [MediaItem] {
+        let (baseURL, token) = try getAuthenticatedBaseURL()
+        
+        let itemsURL = baseURL
+            .appendingPathComponent("Users")
+            .appendingPathComponent(token.user.id)
+            .appendingPathComponent("Items")
+        
+        var components = URLComponents(url: itemsURL, resolvingAgainstBaseURL: true)!
+        components.queryItems = [
+            URLQueryItem(name: "ParentId", value: parentId),
+            URLQueryItem(name: "IncludeItemTypes", value: filter.joined(separator: ",")),
+            URLQueryItem(name: "Fields", value: "Overview,Genres,Tags,ProductionYear,PremiereDate,RunTimeTicks,PlaybackPositionTicks,UserData"),
+            URLQueryItem(name: "SortBy", value: "SortName"),
+            URLQueryItem(name: "SortOrder", value: "Ascending")
+        ]
+        
+        var request = URLRequest(url: components.url!)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(token.accessToken, forHTTPHeaderField: "X-MediaBrowser-Token")
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw PlaybackError.serverError("Invalid response")
+            }
+            
+            if httpResponse.statusCode != 200 {
+                if let errorText = String(data: data, encoding: .utf8) {
+                    logger.error("Server error response: \(errorText)")
+                }
+                throw PlaybackError.serverError("Server returned status code \(httpResponse.statusCode)")
+            }
+            
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            
+            let itemsResponse = try MediaItemResponse.decode(from: data, using: decoder)
+            logger.debug("Successfully decoded \(itemsResponse.items.count) items")
+            return itemsResponse.items
+        } catch let error as DecodingError {
+            logger.error("Decoding error: \(error)")
+            throw PlaybackError.serverError("Failed to decode response: \(error.localizedDescription)")
+        } catch {
+            logger.error("Network error details: \(error.localizedDescription)")
+            throw PlaybackError.networkError(error)
+        }
+    }
 }
 
 // MARK: - URLSessionDownloadDelegate
