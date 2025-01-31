@@ -9,22 +9,22 @@ protocol SeriesDetailTabView: View {
 // MARK: - Tab Enum
 enum SeriesDetailTab: Int, CaseIterable {
     case overview
-    case castCrew
     case episodes
+    case castCrew
     
     var icon: String {
         switch self {
-        case .overview: return "info.circle.fill"
-        case .castCrew: return "person.2.fill"
-        case .episodes: return "list.bullet"
+        case .overview: return "info.circle"
+        case .episodes: return "list.bullet.rectangle"
+        case .castCrew: return "person.2"
         }
     }
     
     var title: String {
         switch self {
         case .overview: return "Overview"
-        case .castCrew: return "Cast & Crew"
         case .episodes: return "Episodes"
+        case .castCrew: return "Cast & Crew"
         }
     }
 }
@@ -137,8 +137,8 @@ enum SeriesDetailLayouts {
                                     showingPlayer: $showingPlayer
                                 )
                             ),
-                            AnyView(CastCrewTab(item: item)),
-                            AnyView(EpisodesTab(item: item))
+                            AnyView(EpisodesTab(item: item)),
+                            AnyView(CastCrewTab(item: item))
                         ],
                         currentPage: Binding(
                             get: { selectedTab.rawValue },
@@ -151,20 +151,14 @@ enum SeriesDetailLayouts {
                     VStack(spacing: 24) {
                         ForEach(SeriesDetailTab.allCases, id: \.self) { tab in
                             Button(action: { selectedTab = tab }) {
-                                VStack(spacing: 4) {
-                                    Image(systemName: tab.icon)
-                                        .font(.system(size: 24))
-                                        .foregroundColor(selectedTab == tab ? themeManager.currentTheme.accentColor : themeManager.currentTheme.secondaryTextColor)
-                                    
-                                    Text(tab.title)
-                                        .font(.system(size: 10))
-                                        .foregroundColor(selectedTab == tab ? themeManager.currentTheme.accentColor : themeManager.currentTheme.secondaryTextColor)
-                                }
+                                Image(systemName: tab.icon)
+                                    .font(.system(size: 18))
+                                    .foregroundColor(selectedTab == tab ? themeManager.currentTheme.accentColor : themeManager.currentTheme.secondaryTextColor)
                             }
                         }
                     }
                     .padding(.vertical, 16)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, 4)
                     .background(.ultraThinMaterial)
                     .background(themeManager.currentTheme.surfaceColor.opacity(0.3))
                     .clipShape(RoundedRectangle(cornerRadius: 16))
