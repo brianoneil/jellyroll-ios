@@ -8,7 +8,7 @@ struct RecentlyAddedCard: View {
     
     var body: some View {
         Button(action: {
-            if item.type.lowercased() == "movie" {
+            if item.type.lowercased() == "movie" || item.type.lowercased() == "series" {
                 showingDetail = true
             } else {
                 showingMessage = true
@@ -21,7 +21,7 @@ struct RecentlyAddedCard: View {
                     imageType: .primary,
                     aspectRatio: 2/3,
                     cornerRadius: 12,
-                    fallbackIcon: "film",
+                    fallbackIcon: item.type.lowercased() == "series" ? "tv" : "film",
                     blurHash: {
                         let hash = item.imageBlurHashes["Primary"]?.values.first
                         return hash
@@ -62,7 +62,11 @@ struct RecentlyAddedCard: View {
         }
         .buttonStyle(.plain)
         .fullScreenCover(isPresented: $showingDetail) {
-            MovieDetailView(item: item)
+            if item.type.lowercased() == "movie" {
+                MovieDetailView(item: item)
+            } else if item.type.lowercased() == "series" {
+                SeriesDetailView(item: item)
+            }
         }
         .alert("Coming Soon", isPresented: $showingMessage) {
             Button("OK", role: .cancel) { }
