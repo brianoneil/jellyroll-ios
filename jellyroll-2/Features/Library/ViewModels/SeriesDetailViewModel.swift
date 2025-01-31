@@ -7,14 +7,17 @@ class SeriesDetailViewModel: ObservableObject {
     @Published var seasons: [MediaItem] = []
     @Published var selectedSeason: MediaItem?
     @Published var episodes: [MediaItem] = []
+    @Published var nextUpEpisode: MediaItem?
     @Published var isLoading = false
     @Published var error: Error?
     
     private let playbackService: PlaybackService
+    private let libraryService: LibraryService
     
     init(item: MediaItem) {
         self.item = item
         self.playbackService = PlaybackService.shared
+        self.libraryService = LibraryService.shared
     }
     
     func loadSeasons(for seriesId: String) {
@@ -22,14 +25,19 @@ class SeriesDetailViewModel: ObservableObject {
         
         Task {
             do {
-                let seasons = try await playbackService.getChildren(
+                async let seasonsTask = playbackService.getChildren(
                     parentId: seriesId,
                     filter: ["Season"]
                 )
+                async let nextUpTask = libraryService.getNextUpEpisode(for: seriesId)
+                
+                let (seasons, nextUp) = try await (seasonsTask, nextUpTask)
+                
                 self.seasons = seasons.sorted(by: { (a: MediaItem, b: MediaItem) in
                     return (a.seasonNumber ?? 0) < (b.seasonNumber ?? 0)
                 })
                 self.selectedSeason = seasons.first
+                self.nextUpEpisode = nextUp
                 self.isLoading = false
                 
                 if let firstSeason = seasons.first {

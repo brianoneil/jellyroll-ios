@@ -209,6 +209,38 @@ class LibraryService {
         return try await fetchItems(with: request)
     }
     
+    func getNextUpEpisode(for seriesId: String) async throws -> MediaItem? {
+        guard let config = try? authService.getServerConfiguration(),
+              let token = try? authService.getCurrentToken() else {
+            throw LibraryError.invalidToken
+        }
+        
+        let urlString = config.baseURLString.trimmingCharacters(in: .whitespaces)
+        guard let url = URL(string: urlString)?.appendingPathComponent("/Shows/NextUp") else {
+            throw LibraryError.serverError("Invalid server URL")
+        }
+        
+        var components = URLComponents(url: url, resolvingAgainstBaseURL: true)!
+        components.queryItems = [
+            URLQueryItem(name: "UserId", value: token.user.id),
+            URLQueryItem(name: "SeriesId", value: seriesId),
+            URLQueryItem(name: "Fields", value: "Overview,Genres,Tags,ProductionYear,PremiereDate,RunTimeTicks,PlaybackPositionTicks,UserData,People"),
+            URLQueryItem(name: "Limit", value: "1")
+        ]
+        
+        var request = URLRequest(url: components.url!)
+        request.httpMethod = "GET"
+        addAuthHeaders(to: &request, token: token.accessToken)
+        
+        do {
+            let items = try await fetchItems(with: request)
+            return items.first
+        } catch {
+            logger.error("Error fetching next up episode: \(error)")
+            throw error
+        }
+    }
+    
     private func fetchItems(with request: URLRequest) async throws -> [MediaItem] {
         do {
             let (data, response) = try await URLSession.shared.data(for: request)

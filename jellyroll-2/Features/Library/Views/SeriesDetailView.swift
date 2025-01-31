@@ -325,6 +325,121 @@ enum SeriesDetailLayouts {
 }
 
 // MARK: - Tab Views
+struct UpNextEpisodeRow: View {
+    let episode: MediaItem
+    @EnvironmentObject private var themeManager: ThemeManager
+    @State private var showingPlayer = false
+    
+    private var hasProgress: Bool {
+        episode.userData.playbackPositionTicks ?? 0 > 0
+    }
+    
+    private var progressPercentage: Double {
+        PlaybackProgressUtility.calculateProgress(
+            positionTicks: episode.userData.playbackPositionTicks,
+            totalTicks: episode.runTimeTicks
+        ) ?? 0
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if hasProgress {
+                Text("Up Next")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+            } else {
+                Text("Let's Get Started")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(themeManager.currentTheme.accentGradient)
+            }
+            
+            Button(action: { showingPlayer = true }) {
+                VStack(alignment: .leading, spacing: 12) {
+                    // Episode Title
+                    Text(episode.name)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                    
+                    HStack(alignment: .top, spacing: 16) {
+                        // Episode Thumbnail with Progress Bar
+                        VStack(alignment: .leading, spacing: 0) {
+                            JellyfinImage(
+                                itemId: episode.id,
+                                imageType: .primary,
+                                aspectRatio: 16/9,
+                                cornerRadius: 8,
+                                fallbackIcon: "play.tv",
+                                blurHash: episode.imageBlurHashes["Primary"]?.values.first
+                            )
+                            .frame(width: 140, height: 80)
+                            
+                            if hasProgress {
+                                Rectangle()
+                                    .fill(themeManager.currentTheme.surfaceColor.opacity(0.3))
+                                    .frame(width: 140, height: 3)
+                                    .overlay(
+                                        Rectangle()
+                                            .fill(themeManager.currentTheme.accentGradient)
+                                            .frame(width: 140 * progressPercentage, height: 3),
+                                        alignment: .leading
+                                    )
+                                    .padding(.top, 4)
+                            }
+                        }
+                        
+                        // Episode Metadata
+                        VStack(alignment: .leading, spacing: 8) {
+                            if let episodeInfo = episode.episodeInfo {
+                                Text(episodeInfo)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                            }
+                            
+                            if let runtime = episode.formattedRuntime {
+                                Text(runtime)
+                                    .font(.system(size: 12))
+                                    .foregroundColor(themeManager.currentTheme.tertiaryTextColor)
+                            }
+                            
+                            // Play Button
+                            HStack {
+                                Image(systemName: "play.fill")
+                                Text(hasProgress ? "Resume" : "Play")
+                            }
+                            .font(.system(size: 14, weight: .semibold))
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 16)
+                            .background(themeManager.currentTheme.accentGradient)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                        }
+                        
+                        Spacer()
+                    }
+                    
+                    // Episode Overview
+                    if let overview = episode.overview {
+                        Text(overview)
+                            .font(.system(size: 14))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                            .lineLimit(2)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }
+        }
+        .padding(12)
+        .background(themeManager.currentTheme.surfaceColor.opacity(0.2))
+        .cornerRadius(12)
+        .fullScreenCover(isPresented: $showingPlayer) {
+            VideoPlayerView(
+                item: episode,
+                startTime: episode.userData.playbackPositionTicks.map { PlaybackProgressUtility.ticksToSeconds($0) }
+            )
+        }
+    }
+}
+
 struct OverviewTab: View, SeriesDetailTabView {
     let item: MediaItem
     let hasProgress: Bool
@@ -332,6 +447,16 @@ struct OverviewTab: View, SeriesDetailTabView {
     let progressText: String
     @Binding var showingPlayer: Bool
     @EnvironmentObject private var themeManager: ThemeManager
+    @StateObject private var viewModel: SeriesDetailViewModel
+    
+    init(item: MediaItem, hasProgress: Bool, progressPercentage: Double, progressText: String, showingPlayer: Binding<Bool>) {
+        self.item = item
+        self.hasProgress = hasProgress
+        self.progressPercentage = progressPercentage
+        self.progressText = progressText
+        self._showingPlayer = showingPlayer
+        self._viewModel = StateObject(wrappedValue: SeriesDetailViewModel(item: item))
+    }
     
     var body: some View {
         VStack {
@@ -351,12 +476,10 @@ struct OverviewTab: View, SeriesDetailTabView {
                         VStack(spacing: 4) {
                             GeometryReader { metrics in
                                 ZStack(alignment: .leading) {
-                                    // Background bar
                                     Rectangle()
                                         .fill(themeManager.currentTheme.surfaceColor.opacity(0.3))
                                         .frame(height: 3)
                                     
-                                    // Progress bar
                                     Rectangle()
                                         .fill(themeManager.currentTheme.accentGradient)
                                         .frame(width: max(0, min(metrics.size.width * progressPercentage, metrics.size.width)), height: 3)
@@ -365,34 +488,10 @@ struct OverviewTab: View, SeriesDetailTabView {
                             .frame(height: 3)
                             
                             Text(progressText)
-                                .font(.system(size: 13))
-                                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    }
-                    
-                    // Quick Info Row
-                    HStack(spacing: 12) {
-                        if let year = item.yearText {
-                            Text(year)
-                                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                        }
-                        
-                        if let runtime = item.formattedRuntime {
-                            Text("•")
-                                .foregroundColor(themeManager.currentTheme.secondaryTextColor.opacity(0.6))
-                            Text(runtime)
-                                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                        }
-                        
-                        if let officialRating = item.officialRating {
-                            Text("•")
-                                .foregroundColor(themeManager.currentTheme.secondaryTextColor.opacity(0.6))
-                            Text(officialRating)
+                                .font(.system(size: 12))
                                 .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                         }
                     }
-                    .font(.system(size: 15))
                     
                     // Overview
                     if let overview = item.overview {
@@ -403,29 +502,9 @@ struct OverviewTab: View, SeriesDetailTabView {
                             .lineLimit(3)
                     }
                     
-                    // Action Buttons
-                    HStack(spacing: 12) {
-                        // Watch Now Button
-                        Button(action: { showingPlayer = true }) {
-                            Text(hasProgress ? "Resume" : "Watch now")
-                                .font(.system(size: 16, weight: .semibold))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(themeManager.currentTheme.accentGradient)
-                                .foregroundColor(themeManager.currentTheme.primaryTextColor)
-                                .cornerRadius(8)
-                        }
-                        
-                        // Trailer Button
-                        Button(action: {}) {
-                            Text("Trailer")
-                                .font(.system(size: 16, weight: .medium))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(themeManager.currentTheme.surfaceColor.opacity(0.2))
-                                .foregroundColor(themeManager.currentTheme.primaryTextColor)
-                                .cornerRadius(8)
-                        }
+                    // Up Next Section
+                    if let nextUpEpisode = viewModel.nextUpEpisode {
+                        UpNextEpisodeRow(episode: nextUpEpisode)
                     }
                 }
                 .padding(24)
@@ -439,6 +518,9 @@ struct OverviewTab: View, SeriesDetailTabView {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.clear)
         .ignoresSafeArea()
+        .onAppear {
+            viewModel.loadSeasons(for: item.id)
+        }
     }
 }
 
