@@ -331,14 +331,7 @@ struct SeriesTabView: View {
                                     .padding(.horizontal)
                             }
                             
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 16) {
-                                    ForEach(libraryViewModel.getTVShowItems(for: library.id)) { item in
-                                        MovieCard(item: item, style: .grid)
-                                    }
-                                }
-                                .padding(.horizontal)
-                            }
+                            SeriesGridView(items: libraryViewModel.getTVShowItems(for: library.id))
                         }
                     }
                 }
