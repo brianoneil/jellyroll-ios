@@ -148,21 +148,21 @@ enum SeriesDetailLayouts {
                     .edgesIgnoringSafeArea(.all)
                     
                     // Tab Indicators
-                    VStack(spacing: 24) {
+                    VStack(spacing: 20) {
                         ForEach(SeriesDetailTab.allCases, id: \.self) { tab in
                             Button(action: { selectedTab = tab }) {
                                 Image(systemName: tab.icon)
-                                    .font(.system(size: 18))
+                                    .font(.system(size: 16))
                                     .foregroundColor(selectedTab == tab ? themeManager.currentTheme.accentColor : themeManager.currentTheme.secondaryTextColor)
                             }
                         }
                     }
-                    .padding(.vertical, 16)
-                    .padding(.horizontal, 4)
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 2)
                     .background(.ultraThinMaterial)
                     .background(themeManager.currentTheme.surfaceColor.opacity(0.3))
                     .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .padding(.trailing, 16)
+                    .padding(.trailing, 8)
                     .padding(.vertical, 32)
                     
                     // Back Button (Top Left)
@@ -512,7 +512,8 @@ struct OverviewTab: View, SeriesDetailTabView {
             .background(.ultraThinMaterial)
             .background(themeManager.currentTheme.surfaceColor.opacity(0.3))
             .clipShape(RoundedRectangle(cornerRadius: 16))
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 8)
+            .padding(.trailing, 40)
             .padding(.bottom, 32)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -598,7 +599,8 @@ struct CastCrewTab: View, SeriesDetailTabView {
                 .background(.ultraThinMaterial)
                 .background(themeManager.currentTheme.surfaceColor.opacity(0.3))
                 .clipShape(RoundedRectangle(cornerRadius: 16))
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 8)
+                .padding(.trailing, 40)
                 .padding(.bottom, 32)
             }
         }
@@ -764,8 +766,8 @@ struct EpisodesTab: View, SeriesDetailTabView {
             .background(.ultraThinMaterial)
             .background(themeManager.currentTheme.surfaceColor.opacity(0.3))
             .clipShape(RoundedRectangle(cornerRadius: 16))
-            .padding(.horizontal, 16)
-            .padding(.trailing, 60)
+            .padding(.horizontal, 8)
+            .padding(.trailing, 40)
             .padding(.bottom, 32)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
