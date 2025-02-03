@@ -362,8 +362,67 @@ class PlaybackService: NSObject, ObservableObject {
     
     func downloadMovie(item: MediaItem) async throws -> URL {
         self.logger.debug("Starting download for item: \(item.id) - \(item.name)")
+        
+        // Check if already downloading or downloaded
+        if let existingState = activeDownloads[item.id] {
+            switch existingState.status {
+            case .downloaded:
+                if let localURL = existingState.localURL,
+                   FileManager.default.fileExists(atPath: localURL.path) {
+                    return localURL
+                }
+                // If file doesn't exist, remove state and continue with download
+                activeDownloads.removeValue(forKey: item.id)
+            case .downloading:
+                throw PlaybackError.downloadError("Download already in progress")
+            case .failed:
+                // Remove failed state and try again
+                activeDownloads.removeValue(forKey: item.id)
+            case .notDownloaded:
+                break
+            }
+        }
+        
         let (baseURL, token) = try getAuthenticatedBaseURL()
-        return try constructMediaStreamURL(for: item.id, token: token, baseURL: baseURL)
+        
+        // Instead of using HLS stream, construct a direct video download URL
+        let downloadURL = baseURL
+            .appendingPathComponent("Videos")
+            .appendingPathComponent(item.id)
+            .appendingPathComponent("stream.mp4")
+        
+        var components = URLComponents(url: downloadURL, resolvingAgainstBaseURL: true)!
+        components.queryItems = [
+            URLQueryItem(name: "api_key", value: token.accessToken),
+            URLQueryItem(name: "MediaSourceId", value: item.id),
+            URLQueryItem(name: "VideoCodec", value: "h264"),
+            URLQueryItem(name: "AudioCodec", value: "aac"),
+            URLQueryItem(name: "TranscodingMaxAudioChannels", value: "2"),
+            URLQueryItem(name: "RequireAvc", value: "true"),
+            URLQueryItem(name: "Container", value: "mp4"),
+            URLQueryItem(name: "Static", value: "true")
+        ]
+        
+        guard let finalURL = components.url else {
+            self.logger.error("[Download] Failed to construct download URL")
+            throw PlaybackError.invalidURL
+        }
+        
+        self.logger.debug("[Download] Using direct download URL: \(finalURL.absoluteString)")
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            self.logger.debug("[Download] Creating download task")
+            
+            let task = downloadSession.downloadTask(with: finalURL)
+            downloadTasks[task] = item.id
+            downloadContinuations[item.id] = continuation
+            
+            // Initialize download state
+            activeDownloads[item.id] = DownloadState(progress: 0, status: .downloading)
+            
+            self.logger.debug("[Download] Starting download task for item: \(item.id)")
+            task.resume()
+        }
     }
     
     func getDownloadState(for itemId: String) -> DownloadState? {
@@ -716,14 +775,32 @@ extension PlaybackService: URLSessionDownloadDelegate {
     nonisolated func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
         Task { @MainActor [weak self] in
             guard let self else { return }
-            guard let itemId = self.getItemId(for: downloadTask) else { return }
+            guard let itemId = self.getItemId(for: downloadTask) else {
+                self.logger.error("[Download Progress] Could not find itemId for task: \(downloadTask.taskIdentifier)")
+                return
+            }
             
             let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
-            self.logger.debug("Download progress for \(itemId): \(Int(progress * 100))% (\(totalBytesWritten)/\(totalBytesExpectedToWrite) bytes)")
+            let progressPercent = Int(progress * 100)
+            let bytesWrittenMB = Double(totalBytesWritten) / 1_048_576
+            let totalSizeMB = Double(totalBytesExpectedToWrite) / 1_048_576
+            
+            self.logger.debug("""
+                [Download Progress]
+                Item: \(itemId)
+                Progress: \(progressPercent)%
+                Written: \(String(format: "%.2f", bytesWrittenMB)) MB
+                Total Size: \(String(format: "%.2f", totalSizeMB)) MB
+                Bytes Written: \(totalBytesWritten)
+                Total Bytes: \(totalBytesExpectedToWrite)
+                """)
             
             if var state = self.activeDownloads[itemId] {
                 state.progress = progress
                 self.activeDownloads[itemId] = state
+                self.logger.debug("[Download State] Updated progress for \(itemId) to \(progressPercent)%")
+            } else {
+                self.logger.error("[Download State] No active download state found for \(itemId)")
             }
         }
     }
@@ -740,15 +817,23 @@ extension PlaybackService: URLSessionDownloadDelegate {
                 self.logger.debug("[Download] Waiting for processing to complete for task \(downloadTask.taskIdentifier)")
             }
             
-            guard let itemId = self.getItemId(for: downloadTask) else { return }
+            guard let itemId = self.getItemId(for: downloadTask) else {
+                self.logger.error("[Download Complete] Could not find itemId for task: \(downloadTask.taskIdentifier)")
+                return
+            }
             
             if let error = error {
-                self.logger.debug("Download task \(downloadTask.taskIdentifier) ended with error: \(error.localizedDescription)")
+                self.logger.debug("[Download Complete] Task \(downloadTask.taskIdentifier) ended with error")
                 
                 // Check if this was a cancellation
                 let nsError = error as NSError
                 if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
-                    self.logger.debug("Download was cancelled by user")
+                    self.logger.debug("""
+                        [Download Cancelled]
+                        Item: \(itemId)
+                        Task: \(downloadTask.taskIdentifier)
+                        Reason: User cancelled
+                        """)
                     // Don't set any error state for cancellation
                     self.downloadTasks.removeValue(forKey: downloadTask)
                     self.downloadContinuations.removeValue(forKey: itemId)
@@ -756,18 +841,27 @@ extension PlaybackService: URLSessionDownloadDelegate {
                 }
                 
                 // Handle other errors
-                self.logger.error("Download task \(downloadTask.taskIdentifier) failed with error: \(error.localizedDescription)")
-                self.logger.error("URLSession error type: \(type(of: error))")
-                self.logger.error("Full error details: \(error)")
+                self.logger.error("""
+                    [Download Error]
+                    Item: \(itemId)
+                    Task: \(downloadTask.taskIdentifier)
+                    Error Type: \(type(of: error))
+                    Error Details: \(error)
+                    Description: \(error.localizedDescription)
+                    """)
                 
                 let wrappedError = PlaybackError.downloadError("URLSession error: \(error.localizedDescription)")
-                self.logger.error("Creating wrapped error for item \(itemId)")
                 self.activeDownloads[itemId] = DownloadState(progress: 0, status: .failed(error.localizedDescription))
                 self.downloadContinuations[itemId]?.resume(throwing: wrappedError)
                 self.downloadTasks.removeValue(forKey: downloadTask)
                 self.downloadContinuations.removeValue(forKey: itemId)
             } else {
-                self.logger.debug("Download task \(downloadTask.taskIdentifier) completed successfully")
+                self.logger.debug("""
+                    [Download Complete]
+                    Item: \(itemId)
+                    Task: \(downloadTask.taskIdentifier)
+                    Status: Success
+                    """)
             }
         }
     }
