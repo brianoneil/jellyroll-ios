@@ -142,6 +142,27 @@ struct SettingsView: View {
                         Text("Connection")
                             .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                     }
+
+                    // Downloads Management Section
+                    Section {
+                        NavigationLink {
+                            DownloadsManagementView()
+                                .navigationBarTitleDisplayMode(.inline)
+                        } label: {
+                            HStack {
+                                Label("Downloads", systemImage: "arrow.down.circle")
+                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                            }
+                        }
+                        .listRowBackground(themeManager.currentTheme.elevatedSurfaceColor)
+                    } header: {
+                        Text("Storage")
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                    }
                     
                     // App Information
                     Section {

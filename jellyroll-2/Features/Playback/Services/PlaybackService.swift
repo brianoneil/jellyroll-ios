@@ -89,23 +89,27 @@ class PlaybackService: NSObject, ObservableObject {
         var progress: Double
         var status: DownloadStatus
         var localURL: URL?
+        var itemName: String
         
         enum CodingKeys: String, CodingKey {
             case progress
             case status
             case localURL
+            case itemName
         }
         
-        init(progress: Double, status: DownloadStatus, localURL: URL? = nil) {
+        init(progress: Double, status: DownloadStatus, localURL: URL? = nil, itemName: String) {
             self.progress = progress
             self.status = status
             self.localURL = localURL
+            self.itemName = itemName
         }
         
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             progress = try container.decode(Double.self, forKey: .progress)
             status = try container.decode(DownloadStatus.self, forKey: .status)
+            itemName = try container.decode(String.self, forKey: .itemName)
             if let relativePath = try container.decodeIfPresent(String.self, forKey: .localURL) {
                 // Convert relative path to absolute URL
                 if let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
@@ -118,6 +122,7 @@ class PlaybackService: NSObject, ObservableObject {
             var container = encoder.container(keyedBy: CodingKeys.self)
             try container.encode(progress, forKey: .progress)
             try container.encode(status, forKey: .status)
+            try container.encode(itemName, forKey: .itemName)
             if let url = localURL,
                let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
                 // Store relative path from Documents directory
@@ -417,8 +422,12 @@ class PlaybackService: NSObject, ObservableObject {
             downloadTasks[task] = item.id
             downloadContinuations[item.id] = continuation
             
-            // Initialize download state
-            activeDownloads[item.id] = DownloadState(progress: 0, status: .downloading)
+            // Initialize download state with item name
+            activeDownloads[item.id] = DownloadState(
+                progress: 0,
+                status: .downloading,
+                itemName: item.name
+            )
             
             self.logger.debug("[Download] Starting download task for item: \(item.id)")
             task.resume()
@@ -733,7 +742,12 @@ extension PlaybackService: URLSessionDownloadDelegate {
                 
                 // Update state
                 self.logger.debug("[Download] Updating download state")
-                self.activeDownloads[itemId] = DownloadState(progress: 1.0, status: .downloaded, localURL: destinationURL)
+                self.activeDownloads[itemId] = DownloadState(
+                    progress: 1.0,
+                    status: .downloaded,
+                    localURL: destinationURL,
+                    itemName: self.activeDownloads[itemId]?.itemName ?? "Unknown Movie"
+                )
                 self.downloadContinuations[itemId]?.resume(returning: destinationURL)
                 self.downloadTasks.removeValue(forKey: downloadTask)
                 self.downloadContinuations.removeValue(forKey: itemId)
@@ -756,12 +770,20 @@ extension PlaybackService: URLSessionDownloadDelegate {
                     case .invalidURL:
                         errorMessage = "Invalid URL"
                     }
-                    self.activeDownloads[itemId] = DownloadState(progress: 0, status: .failed(errorMessage))
+                    self.activeDownloads[itemId] = DownloadState(
+                        progress: 0,
+                        status: .failed(errorMessage),
+                        itemName: self.activeDownloads[itemId]?.itemName ?? "Unknown Movie"
+                    )
                     self.downloadContinuations[itemId]?.resume(throwing: playbackError)
                 } else {
                     self.logger.error("[Download] System error: \(error)")
                     let errorMessage = error.localizedDescription
-                    self.activeDownloads[itemId] = DownloadState(progress: 0, status: .failed(errorMessage))
+                    self.activeDownloads[itemId] = DownloadState(
+                        progress: 0,
+                        status: .failed(errorMessage),
+                        itemName: self.activeDownloads[itemId]?.itemName ?? "Unknown Movie"
+                    )
                     self.downloadContinuations[itemId]?.resume(throwing: PlaybackError.downloadError(errorMessage))
                 }
                 self.downloadTasks.removeValue(forKey: downloadTask)
@@ -851,7 +873,11 @@ extension PlaybackService: URLSessionDownloadDelegate {
                     """)
                 
                 let wrappedError = PlaybackError.downloadError("URLSession error: \(error.localizedDescription)")
-                self.activeDownloads[itemId] = DownloadState(progress: 0, status: .failed(error.localizedDescription))
+                self.activeDownloads[itemId] = DownloadState(
+                    progress: 0,
+                    status: .failed(error.localizedDescription),
+                    itemName: self.activeDownloads[itemId]?.itemName ?? "Unknown Movie"
+                )
                 self.downloadContinuations[itemId]?.resume(throwing: wrappedError)
                 self.downloadTasks.removeValue(forKey: downloadTask)
                 self.downloadContinuations.removeValue(forKey: itemId)
