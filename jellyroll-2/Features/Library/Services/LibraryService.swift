@@ -12,28 +12,44 @@ enum LibraryError: Error {
 }
 
 class LibraryService {
-    static let shared = LibraryService()
+    static let shared: LibraryService = {
+        // Initialize with default values, these will be updated later
+        return LibraryService(serverURL: "", apiKey: "")
+    }()
+    
     private let authService = AuthenticationService.shared
     private let logger = Logger(subsystem: "com.jammplayer.app", category: "LibraryService")
     
     private let clientName = "JammPlayer"
     private let clientVersion = "1.0.0"
     private let deviceId: String = {
-        #if os(iOS)
+        #if os(iOS) || os(tvOS)
         return UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
         #else
         return UUID().uuidString
         #endif
     }()
     private let deviceName: String = {
-        #if os(iOS)
+        #if os(iOS) || os(tvOS)
         return UIDevice.current.name
         #else
-        return Host.current().localizedName ?? "Mac"
+        return ProcessInfo.processInfo.hostName
         #endif
     }()
     
-    private init() {}
+    private var baseURL: URL
+    private var apiKey: String
+    
+    init(serverURL: String, apiKey: String) {
+        self.baseURL = URL(string: serverURL) ?? URL(string: "http://localhost")!
+        self.apiKey = apiKey
+    }
+    
+    // Method to update configuration
+    func updateConfiguration(serverURL: String, apiKey: String) {
+        self.baseURL = URL(string: serverURL) ?? URL(string: "http://localhost")!
+        self.apiKey = apiKey
+    }
     
     private func addAuthHeaders(to request: inout URLRequest, token: String) {
         // Use X-MediaBrowser-Token for authentication

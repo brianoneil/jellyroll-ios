@@ -3,43 +3,44 @@ import UIKit
 
 /// Manages layout configuration based on device orientation and size classes
 class LayoutManager: ObservableObject {
-    @Published private(set) var orientation: UIDeviceOrientation = UIDevice.current.orientation
+    @Published var isPad: Bool
+    @Published var isLandscape: Bool
     @Published private(set) var horizontalSizeClass: UIUserInterfaceSizeClass = .compact
     @Published private(set) var verticalSizeClass: UIUserInterfaceSizeClass = .regular
     
     init() {
-        // Start monitoring orientation changes
+        #if os(tvOS)
+        self.isPad = true  // tvOS is always considered in "pad" mode
+        self.isLandscape = true  // tvOS is always in landscape
+        #else
+        self.isPad = UIDevice.current.userInterfaceIdiom == .pad
+        self.isLandscape = UIDevice.current.orientation.isLandscape
+        
+        // Only add orientation observer on non-tvOS platforms
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(orientationChanged),
             name: UIDevice.orientationDidChangeNotification,
             object: nil
         )
+        #endif
     }
     
+    #if !os(tvOS)
     @objc private func orientationChanged() {
-        orientation = UIDevice.current.orientation
+        isLandscape = UIDevice.current.orientation.isLandscape
     }
+    #endif
     
     func updateSizeClasses(horizontal: UIUserInterfaceSizeClass, vertical: UIUserInterfaceSizeClass) {
         horizontalSizeClass = horizontal
         verticalSizeClass = vertical
     }
     
-    var isLandscape: Bool {
-        orientation.isLandscape
-    }
-    
-    var isPortrait: Bool {
-        orientation.isPortrait
-    }
-    
-    var isPad: Bool {
-        horizontalSizeClass == .regular && verticalSizeClass == .regular
-    }
-    
     deinit {
+        #if !os(tvOS)
         NotificationCenter.default.removeObserver(self)
+        #endif
     }
 }
 

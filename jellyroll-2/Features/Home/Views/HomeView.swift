@@ -179,6 +179,7 @@ struct HomeView: View {
                                     .padding(.horizontal, (geometry.size.width - itemWidth) / 2)
                                 }
                                 .content.offset(x: -CGFloat(selectedItemIndex) * (itemWidth + spacing) + dragOffset)
+                                #if !os(tvOS)
                                 .gesture(
                                     DragGesture()
                                         .onChanged { value in
@@ -198,6 +199,14 @@ struct HomeView: View {
                                             }
                                         }
                                 )
+                                #endif
+                                #if os(tvOS)
+                                .onChange(of: selectedItemIndex) { _, newIndex in
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                        dragOffset = 0
+                                    }
+                                }
+                                #endif
                                 .scrollDisabled(true)
                                 .frame(height: 500)
                             }

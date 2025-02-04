@@ -1,5 +1,16 @@
 import SwiftUI
 
+struct TVTextFieldStyle: ViewModifier {
+    @EnvironmentObject private var themeManager: ThemeManager
+    
+    func body(content: Content) -> some View {
+        content
+            .padding()
+            .background(themeManager.currentTheme.surfaceColor)
+            .cornerRadius(10)
+    }
+}
+
 struct LoginView: View {
     @EnvironmentObject private var viewModel: LoginViewModel
     @EnvironmentObject private var themeManager: ThemeManager
@@ -30,7 +41,9 @@ struct LoginView: View {
                 }
             }
             .disabled(viewModel.isLoading)
+            #if !os(tvOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 if !viewModel.showServerConfig {
                     ToolbarItem(placement: .navigationBarTrailing) {
@@ -66,7 +79,11 @@ struct LoginView: View {
             
             VStack(spacing: 16) {
                 TextField("Server URL", text: $viewModel.serverURL)
+                    #if os(tvOS)
+                    .modifier(TVTextFieldStyle())
+                    #else
                     .textFieldStyle(.roundedBorder)
+                    #endif
                     .textInputAutocapitalization(.never)
                     .keyboardType(.URL)
                     .autocorrectionDisabled()
@@ -147,13 +164,21 @@ struct LoginView: View {
             
             VStack(spacing: 15) {
                 TextField("Username", text: $viewModel.username)
+                    #if os(tvOS)
+                    .modifier(TVTextFieldStyle())
+                    #else
                     .textFieldStyle(.roundedBorder)
+                    #endif
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .background(themeManager.currentTheme.surfaceColor)
                 
                 SecureField("Password", text: $viewModel.password)
+                    #if os(tvOS)
+                    .modifier(TVTextFieldStyle())
+                    #else
                     .textFieldStyle(.roundedBorder)
+                    #endif
                     .background(themeManager.currentTheme.surfaceColor)
                 
                 Button {

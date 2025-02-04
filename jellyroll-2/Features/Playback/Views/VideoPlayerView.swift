@@ -129,18 +129,20 @@ struct AVPlayerControllerRepresentable: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let controller = AVPlayerViewController()
         controller.player = player
-        controller.delegate = context.coordinator
+        #if !os(tvOS)
         controller.allowsPictureInPicturePlayback = true
+        #endif
         
         // Configure for HDR playback and ensure controls are always visible
+        controller.videoGravity = .resizeAspect
+        controller.showsPlaybackControls = true
+        
+        #if !os(tvOS)
         if #available(iOS 15.0, *) {
-            controller.videoGravity = .resizeAspect
             controller.entersFullScreenWhenPlaybackBegins = true
             controller.exitsFullScreenWhenPlaybackEnds = true
         }
-        
-        // Keep controls visible
-        controller.showsPlaybackControls = true
+        #endif
         
         // Add observer for rate changes to detect play/pause
         NotificationCenter.default.addObserver(
@@ -160,14 +162,13 @@ struct AVPlayerControllerRepresentable: UIViewControllerRepresentable {
         if uiViewController.player !== player {
             uiViewController.player = player
         }
-        uiViewController.showsPlaybackControls = true
     }
     
     func makeCoordinator() -> Coordinator {
         Coordinator(dismiss: dismiss, logger: logger, viewModel: viewModel)
     }
     
-    class Coordinator: NSObject, AVPlayerViewControllerDelegate {
+    class Coordinator: NSObject {
         let dismiss: DismissAction
         let logger: Logger
         let viewModel: PlaybackViewModel
@@ -187,14 +188,14 @@ struct AVPlayerControllerRepresentable: UIViewControllerRepresentable {
                 case .paused:
                     logger.debug("[Player] Player status changed to paused")
                     Task { @MainActor in
-                        if viewModel.isPlaying { // Only toggle if we're not already in the desired state
+                        if viewModel.isPlaying {
                             await viewModel.togglePlayPause()
                         }
                     }
                 case .playing:
                     logger.debug("[Player] Player status changed to playing")
                     Task { @MainActor in
-                        if !viewModel.isPlaying { // Only toggle if we're not already in the desired state
+                        if !viewModel.isPlaying {
                             await viewModel.togglePlayPause()
                         }
                     }
@@ -206,6 +207,7 @@ struct AVPlayerControllerRepresentable: UIViewControllerRepresentable {
             }
         }
         
+        #if !os(tvOS)
         func playerViewController(_ playerViewController: AVPlayerViewController, willBeginFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator) {
             logger.debug("[Player] Will begin full screen presentation")
             playerViewController.showsPlaybackControls = true
@@ -217,5 +219,31 @@ struct AVPlayerControllerRepresentable: UIViewControllerRepresentable {
                 self.dismiss()
             }
         }
+        #endif
     }
-} 
+}
+
+#if !os(tvOS)
+extension VideoPlayerView: UIViewControllerRepresentableContext {
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, AVPlayerViewControllerDelegate {
+        let parent: VideoPlayerView
+        
+        init(_ parent: VideoPlayerView) {
+            self.parent = parent
+        }
+        
+        func playerViewController(_ playerViewController: AVPlayerViewController, 
+                                restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void) {
+            completionHandler(true)
+        }
+        
+        func playerViewControllerShouldAutomaticallyDismissAtPictureInPictureStart(_ playerViewController: AVPlayerViewController) -> Bool {
+            return false
+        }
+    }
+}
+#endif 

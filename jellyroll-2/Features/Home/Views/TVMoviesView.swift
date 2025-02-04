@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// A tvOS-optimized view for browsing TV show libraries
-struct TVShowsView: View {
+/// A tvOS-optimized view for browsing movie libraries
+struct TVMoviesView: View {
     let libraries: [LibraryItem]
     @StateObject private var libraryViewModel = LibraryViewModel()
     @EnvironmentObject private var themeManager: ThemeManager
-    @State private var selectedShow: MediaItem?
+    @State private var selectedMovie: MediaItem?
     @State private var selectedGenre: String?
     
     var body: some View {
@@ -29,12 +29,12 @@ struct TVShowsView: View {
                     .padding(.horizontal)
                 }
                 
-                // Shows Grid
+                // Movies Grid
                 ForEach(libraries) { library in
-                    let shows = libraryViewModel.getTVShowItems(for: library.id)
-                    let filteredShows = selectedGenre == nil ? shows : shows.filter { $0.genres.contains(selectedGenre!) }
+                    let movies = libraryViewModel.getMovieItems(for: library.id)
+                    let filteredMovies = selectedGenre == nil ? movies : movies.filter { $0.genres.contains(selectedGenre!) }
                     
-                    if !filteredShows.isEmpty {
+                    if !filteredMovies.isEmpty {
                         VStack(alignment: .leading, spacing: 24) {
                             if libraries.count > 1 {
                                 Text(library.name)
@@ -50,10 +50,13 @@ struct TVShowsView: View {
                                 ],
                                 spacing: 48
                             ) {
-                                ForEach(filteredShows) { show in
-                                    TVShowCard(item: show)
+                                ForEach(filteredMovies) { movie in
+                                    MovieCard(item: movie)
                                         .frame(height: 400)
                                         .focusable()
+                                        .onPlayPauseCommand {
+                                            selectedMovie = movie
+                                        }
                                 }
                             }
                             .padding(.horizontal)
@@ -63,55 +66,35 @@ struct TVShowsView: View {
             }
             .padding(.vertical, 48)
         }
+        .fullScreenCover(item: $selectedMovie) { movie in
+            VideoPlayerView(item: movie)
+        }
     }
 }
 
-struct TVShowCard: View {
-    let item: MediaItem
-    @EnvironmentObject private var themeManager: ThemeManager
-    @Environment(\.isFocused) private var isFocused
+/// A custom button style for tvOS cards
+struct TVCardButtonStyle: ButtonStyle {
+    let isSelected: Bool
     
-    var body: some View {
-        NavigationLink(destination: SeriesDetailView(item: item)) {
-            VStack(alignment: .leading, spacing: 16) {
-                // Poster Image
-                JellyfinImage(
-                    itemId: item.id,
-                    imageType: .primary,
-                    aspectRatio: 2/3,
-                    cornerRadius: 8,
-                    fallbackIcon: "tv"
-                )
-                
-                // Show Info
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(item.name)
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                        .foregroundColor(themeManager.currentTheme.primaryTextColor)
-                        .lineLimit(1)
-                    
-                    if let year = item.productionYear {
-                        Text(String(year))
-                            .font(.body)
-                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                    }
-                }
-            }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(themeManager.currentTheme.elevatedSurfaceColor)
-                    .brightness(isFocused ? 0.1 : 0)
-            )
-            .scaleEffect(isFocused ? 1.02 : 1.0)
-            .animation(.spring(response: 0.3), value: isFocused)
-        }
-        .buttonStyle(.plain)
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.title3)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 12)
+            .background(isSelected ? Color.white : Color.white.opacity(0.1))
+            .foregroundColor(isSelected ? .black : .white)
+            .cornerRadius(8)
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+    }
+}
+
+extension ButtonStyle where Self == TVCardButtonStyle {
+    static func tvCard(isSelected: Bool) -> TVCardButtonStyle {
+        TVCardButtonStyle(isSelected: isSelected)
     }
 }
 
 #Preview {
-    TVShowsView(libraries: [])
+    TVMoviesView(libraries: [])
         .environmentObject(ThemeManager())
 } 

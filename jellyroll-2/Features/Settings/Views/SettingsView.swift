@@ -146,8 +146,12 @@ struct SettingsView: View {
                     // Downloads Management Section
                     Section {
                         NavigationLink {
+                            #if os(tvOS)
+                            DownloadsManagementView()
+                            #else
                             DownloadsManagementView()
                                 .navigationBarTitleDisplayMode(.inline)
+                            #endif
                         } label: {
                             HStack {
                                 Label("Downloads", systemImage: "arrow.down.circle")
@@ -217,9 +221,14 @@ struct SettingsView: View {
                     }
                     #endif
                 }
+                .background(themeManager.currentTheme.backgroundColor)
+                #if !os(tvOS)
                 .scrollContentBackground(.hidden)
+                #endif
                 .navigationTitle("Settings")
+                #if !os(tvOS)
                 .navigationBarTitleTextColor(themeManager.currentTheme.primaryTextColor)
+                #endif
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         Image("jamm-logo")
@@ -234,11 +243,13 @@ struct SettingsView: View {
     }
 }
 
-// Extension to support navigation bar title color
+#if !os(tvOS)
+// Extension to support navigation bar title color (iOS only)
 extension View {
     func navigationBarTitleTextColor(_ color: Color) -> some View {
         UINavigationBar.appearance().largeTitleTextAttributes = [.foregroundColor: UIColor(color)]
         UINavigationBar.appearance().titleTextAttributes = [.foregroundColor: UIColor(color)]
         return self
     }
-} 
+}
+#endif 

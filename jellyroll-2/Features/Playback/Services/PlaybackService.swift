@@ -774,6 +774,7 @@ extension PlaybackService: URLSessionDownloadDelegate {
                     itemName: self.activeDownloads[itemId]?.itemName ?? "Unknown Movie"
                 )
                 self.downloadContinuations[itemId]?.resume(returning: destinationURL)
+                self.downloadTasks.removeValue(forKey: downloadTask)
                 self.downloadContinuations.removeValue(forKey: itemId)
                 
                 self.logger.debug("[Download] Process completed successfully")
@@ -810,6 +811,7 @@ extension PlaybackService: URLSessionDownloadDelegate {
                     )
                     self.downloadContinuations[itemId]?.resume(throwing: PlaybackError.downloadError(errorMessage))
                 }
+                self.downloadTasks.removeValue(forKey: downloadTask)
                 self.downloadContinuations.removeValue(forKey: itemId)
             }
             
@@ -920,10 +922,6 @@ extension PlaybackService: URLSessionDownloadDelegate {
                     Status: Success
                     """)
             }
-            
-            // Only remove the task mapping after all processing is complete
-            self.downloadTasks.removeValue(forKey: downloadTask)
-            self.logger.debug("[Download] Removed task mapping for completed download: \(itemId)")
         }
     }
 } 
