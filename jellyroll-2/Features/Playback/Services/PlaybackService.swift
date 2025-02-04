@@ -53,13 +53,20 @@ class PlaybackService: NSObject, ObservableObject {
             Task { @MainActor in
                 do {
                     try self.statePersistence.saveStates(self.activeDownloads)
+                    logger.debug("[Download] Saved \(self.activeDownloads.count) download states")
+                    logger.debug("[Download] Active states: \(self.activeDownloads.keys.joined(separator: ", "))")
                 } catch {
                     self.logger.error("Failed to save download states: \(error.localizedDescription)")
                 }
             }
         }
     }
-    private var downloadTasks: [URLSessionDownloadTask: String] = [:]
+    private var downloadTasks: [URLSessionDownloadTask: String] = [:] {
+        didSet {
+            self.logger.debug("[Download] Download tasks updated - Count: \(self.downloadTasks.count)")
+            self.logger.debug("[Download] Task mappings: \(self.downloadTasks.map { "Task \($0.key.taskIdentifier): \($0.value)" }.joined(separator: ", "))")
+        }
+    }
     private var downloadContinuations: [String: CheckedContinuation<URL, Error>] = [:]
     private var processingTasks: Set<Int> = []
     
@@ -491,30 +498,48 @@ class PlaybackService: NSObject, ObservableObject {
         self.logger.debug("Cancelling download for item: \(itemId)")
         
         // Find and cancel the download task
-        if let task = downloadTasks.first(where: { $0.value == itemId })?.key {
+        if let taskEntry = self.downloadTasks.first(where: { $0.value == itemId }) {
+            let task = taskEntry.key
             task.cancel()
-            downloadTasks.removeValue(forKey: task)
+            
+            // Only remove the task mapping after we're sure the cancellation is complete
+            Task { @MainActor in
+                // Wait a short time to ensure the cancellation is processed
+                try? await Task.sleep(nanoseconds: 500_000_000) // 500ms
+                self.downloadTasks.removeValue(forKey: task)
+                self.logger.debug("[Download] Removed task mapping for cancelled download: \(itemId)")
+            }
         }
         
         // Create a temporary URL for cancellation
         if let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
             let tempURL = documentsPath.appendingPathComponent("cancelled")
             // Resume with a dummy URL to complete the async operation without error
-            downloadContinuations[itemId]?.resume(returning: tempURL)
+            self.downloadContinuations[itemId]?.resume(returning: tempURL)
         }
-        downloadContinuations.removeValue(forKey: itemId)
+        self.downloadContinuations.removeValue(forKey: itemId)
         
         // Remove the download state completely
-        activeDownloads.removeValue(forKey: itemId)
+        self.activeDownloads.removeValue(forKey: itemId)
         
         // Clean up any processing tasks
-        processingTasks.removeAll()
+        self.processingTasks.removeAll()
         
         self.logger.debug("Download cancelled for item: \(itemId)")
     }
     
     private func getItemId(for task: URLSessionDownloadTask) -> String? {
-        return downloadTasks[task]
+        let itemId = self.downloadTasks[task]
+        if itemId == nil {
+            // Enhanced logging to help diagnose the issue
+            self.logger.error("""
+                [Download] Failed to find itemId for task: \(task.taskIdentifier)
+                Active download tasks: \(self.downloadTasks.map { "Task \($0.key.taskIdentifier): \($0.value)" }.joined(separator: ", "))
+                Active downloads: \(self.activeDownloads.keys.joined(separator: ", "))
+                Processing tasks: \(self.processingTasks)
+                """)
+        }
+        return itemId
     }
 
     /// Stops the current playback session
@@ -749,7 +774,6 @@ extension PlaybackService: URLSessionDownloadDelegate {
                     itemName: self.activeDownloads[itemId]?.itemName ?? "Unknown Movie"
                 )
                 self.downloadContinuations[itemId]?.resume(returning: destinationURL)
-                self.downloadTasks.removeValue(forKey: downloadTask)
                 self.downloadContinuations.removeValue(forKey: itemId)
                 
                 self.logger.debug("[Download] Process completed successfully")
@@ -786,7 +810,6 @@ extension PlaybackService: URLSessionDownloadDelegate {
                     )
                     self.downloadContinuations[itemId]?.resume(throwing: PlaybackError.downloadError(errorMessage))
                 }
-                self.downloadTasks.removeValue(forKey: downloadTask)
                 self.downloadContinuations.removeValue(forKey: itemId)
             }
             
@@ -832,6 +855,14 @@ extension PlaybackService: URLSessionDownloadDelegate {
         
         Task { @MainActor [weak self] in
             guard let self else { return }
+            
+            // Log the state before processing
+            self.logger.debug("""
+                [Download Complete] Starting completion for task \(downloadTask.taskIdentifier)
+                Active download tasks: \(self.downloadTasks.map { "Task \($0.key.taskIdentifier): \($0.value)" }.joined(separator: ", "))
+                Active downloads: \(self.activeDownloads.keys.joined(separator: ", "))
+                Processing tasks: \(self.processingTasks)
+                """)
             
             // Wait for any ongoing processing to complete
             while self.processingTasks.contains(downloadTask.taskIdentifier) {
@@ -889,6 +920,10 @@ extension PlaybackService: URLSessionDownloadDelegate {
                     Status: Success
                     """)
             }
+            
+            // Only remove the task mapping after all processing is complete
+            self.downloadTasks.removeValue(forKey: downloadTask)
+            self.logger.debug("[Download] Removed task mapping for completed download: \(itemId)")
         }
     }
 } 
