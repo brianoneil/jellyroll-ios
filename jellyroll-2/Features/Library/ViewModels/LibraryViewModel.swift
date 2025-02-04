@@ -19,6 +19,37 @@ class LibraryViewModel: ObservableObject {
         .music: [:]
     ]
     
+    init() {
+        // Set up notification observer for server changes
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleServerChange),
+            name: .serverDidChange,
+            object: nil
+        )
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    @objc private func handleServerChange() {
+        Task {
+            // Clear existing data
+            self.libraries = []
+            self.continueWatching = []
+            self.latestMedia = []
+            self.mediaItems = [
+                .movies: [:],
+                .tvshows: [:],
+                .music: [:]
+            ]
+            
+            // Reload all data for new server
+            await loadLibraries()
+        }
+    }
+    
     func loadLibraries() async {
         isLoading = true
         errorMessage = nil

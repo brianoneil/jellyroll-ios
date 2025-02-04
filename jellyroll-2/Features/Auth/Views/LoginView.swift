@@ -61,35 +61,79 @@ struct LoginView: View {
         VStack(spacing: 20) {
             Text("Connect to Server")
                 .font(.title2)
-                .fontWeight(.bold)
                 .foregroundColor(themeManager.currentTheme.primaryTextColor)
             
-            VStack(spacing: 16) {
-                TextField("Server URL", text: $viewModel.serverURL)
-                    .textFieldStyle(.roundedBorder)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.URL)
-                    .autocorrectionDisabled()
-                    .background(themeManager.currentTheme.surfaceColor)
-                
-                Button {
-                    Task {
-                        await viewModel.validateAndSaveServer()
+            TextField("Server URL", text: $viewModel.serverURL)
+                .textFieldStyle(.roundedBorder)
+                .autocapitalization(.none)
+                .disableAutocorrection(true)
+            
+            Button(action: {
+                Task {
+                    await viewModel.validateAndSaveServer()
+                }
+            }) {
+                Text("Connect")
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(themeManager.currentTheme.accentGradient)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+            }
+            .disabled(viewModel.serverURL.isEmpty || viewModel.isLoading)
+            
+            if !viewModel.authenticatedServers.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Connected Servers")
+                        .font(.headline)
+                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                        .padding(.top, 8)
+                    
+                    Divider()
+                        .background(themeManager.currentTheme.tertiaryTextColor)
+                    
+                    ForEach(viewModel.authenticatedServers, id: \.serverURL) { server in
+                        Button(action: {
+                            Task {
+                                await viewModel.switchToServer(server.serverURL)
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(themeManager.currentTheme.accentGradient)
+                                VStack(alignment: .leading) {
+                                    Text(server.serverURL)
+                                        .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                                        .lineLimit(1)
+                                    Text(server.user.name)
+                                        .font(.caption)
+                                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                                }
+                                Spacer()
+                            }
+                            .padding(.vertical, 8)
+                        }
+                        
+                        if server.serverURL != viewModel.authenticatedServers.last?.serverURL {
+                            Divider()
+                                .background(themeManager.currentTheme.tertiaryTextColor)
+                        }
                     }
-                } label: {
-                    Text("Connect")
+                }
+                .padding()
+                .background(themeManager.currentTheme.surfaceColor)
+                .cornerRadius(10)
+                
+                Button(action: {
+                    viewModel.logout(fromAllServers: true)
+                }) {
+                    Text("Disconnect All")
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(themeManager.currentTheme.accentGradient)
-                        .foregroundColor(.white)
+                        .background(Color.red.opacity(0.1))
+                        .foregroundColor(.red)
                         .cornerRadius(10)
                 }
-            }
-            
-            if let errorMessage = viewModel.errorMessage {
-                Text(errorMessage)
-                    .foregroundColor(.red)
-                    .font(.caption)
             }
             
             if !viewModel.serverHistory.isEmpty {
@@ -113,17 +157,11 @@ struct LoginView: View {
                                     Text(history.url)
                                         .foregroundColor(themeManager.currentTheme.primaryTextColor)
                                         .lineLimit(1)
-                                    Text(history.lastUsed.formatted(.relative(presentation: .named)))
-                                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                                        .font(.caption)
                                 }
                                 Spacer()
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                                    .font(.caption)
                             }
+                            .padding(.vertical, 8)
                         }
-                        .padding(.vertical, 8)
                         
                         if history.url != viewModel.serverHistory.last?.url {
                             Divider()
@@ -132,10 +170,11 @@ struct LoginView: View {
                     }
                 }
                 .padding()
-                .background(themeManager.currentTheme.elevatedSurfaceColor)
+                .background(themeManager.currentTheme.surfaceColor)
                 .cornerRadius(10)
             }
         }
+        .padding()
     }
     
     private var loginFormView: some View {

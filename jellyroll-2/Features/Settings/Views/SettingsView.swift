@@ -119,12 +119,72 @@ struct SettingsView: View {
                     
                     // Server Information
                     Section {
-                        HStack {
-                            Label("Server", systemImage: "server.rack")
-                                .foregroundColor(themeManager.currentTheme.primaryTextColor)
-                            Spacer()
-                            Text(loginViewModel.serverURL)
-                                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                        // Current Server
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Label("Current Server", systemImage: "server.rack")
+                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                                Spacer()
+                            }
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(themeManager.currentTheme.accentGradient)
+                                VStack(alignment: .leading) {
+                                    Text(loginViewModel.serverURL)
+                                        .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                                    if let user = loginViewModel.user {
+                                        Text(user.name)
+                                            .font(.caption)
+                                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                                    }
+                                }
+                                Spacer()
+                            }
+                            .padding(.leading)
+                        }
+                        .padding(.vertical, 4)
+                        .listRowBackground(themeManager.currentTheme.elevatedSurfaceColor)
+                        
+                        // Other Connected Servers
+                        if !loginViewModel.authenticatedServers.isEmpty {
+                            if loginViewModel.authenticatedServers.count > 1 {
+                                Text("Other Connected Servers")
+                                    .font(.caption)
+                                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                                    .listRowBackground(themeManager.currentTheme.elevatedSurfaceColor)
+                            }
+                            
+                            ForEach(loginViewModel.authenticatedServers.filter { $0.serverURL != loginViewModel.serverURL }, id: \.serverURL) { server in
+                                Button(action: {
+                                    Task {
+                                        await loginViewModel.switchToServer(server.serverURL)
+                                    }
+                                }) {
+                                    HStack {
+                                        Label {
+                                            VStack(alignment: .leading) {
+                                                Text(server.serverURL)
+                                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                                                Text(server.user.name)
+                                                    .font(.caption)
+                                                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                                            }
+                                        } icon: {
+                                            Image(systemName: "arrow.right.circle")
+                                                .foregroundStyle(themeManager.currentTheme.accentGradient)
+                                        }
+                                        Spacer()
+                                    }
+                                }
+                                .listRowBackground(themeManager.currentTheme.elevatedSurfaceColor)
+                            }
+                        }
+                        
+                        Button(action: {
+                            loginViewModel.showServerConfiguration()
+                        }) {
+                            Label("Connect to Server", systemImage: "plus.circle")
+                                .foregroundColor(themeManager.currentTheme.accentColor)
                         }
                         .listRowBackground(themeManager.currentTheme.elevatedSurfaceColor)
                         
@@ -141,6 +201,11 @@ struct SettingsView: View {
                     } header: {
                         Text("Connection")
                             .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                    } footer: {
+                        if loginViewModel.authenticatedServers.count > 1 {
+                            Text("Tap a server to switch to it")
+                                .foregroundColor(themeManager.currentTheme.tertiaryTextColor)
+                        }
                     }
 
                     // Downloads Management Section
@@ -230,6 +295,9 @@ struct SettingsView: View {
                     }
                 }
             }
+        }
+        .sheet(isPresented: $loginViewModel.showServerConfigSheet) {
+            LoginView()
         }
     }
 }

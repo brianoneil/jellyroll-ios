@@ -125,21 +125,12 @@ class AuthenticationService {
         request.httpBody = try JSONEncoder().encode(loginRequest)
         
         do {
-            logger.debug("Sending login request to: \(loginURL)")
-            logger.debug("Request headers: \(request.allHTTPHeaderFields ?? [:])")
-            if let body = request.httpBody, let bodyString = String(data: body, encoding: .utf8) {
-                logger.debug("Request body: \(bodyString)")
-            }
-            
             let (data, response) = try await URLSession.shared.data(for: request)
             
             guard let httpResponse = response as? HTTPURLResponse else {
                 logger.error("Invalid response type received")
                 throw AuthenticationError.unknown
             }
-            
-            logger.debug("Received response with status code: \(httpResponse.statusCode)")
-            logger.debug("Response headers: \(httpResponse.allHeaderFields)")
             
             if httpResponse.statusCode != 200 {
                 if let errorResponse = String(data: data, encoding: .utf8) {
@@ -149,13 +140,8 @@ class AuthenticationService {
                 throw AuthenticationError.invalidCredentials
             }
             
-            // Log the response data for debugging
-            if let responseString = String(data: data, encoding: .utf8) {
-                logger.debug("Server response: \(responseString)")
-            }
-            
             let token = try jsonDecoder.decode(AuthenticationToken.self, from: data)
-            try keychainService.saveAuthToken(token)
+            try keychainService.saveAuthToken(token, forServer: config.baseURLString)
             logger.debug("Login successful for user: \(username)")
             return token
             
@@ -169,11 +155,34 @@ class AuthenticationService {
     }
     
     func getCurrentToken() throws -> AuthenticationToken? {
-        try keychainService.loadAuthToken()
+        guard let config = try keychainService.loadServerConfiguration() else { return nil }
+        return try keychainService.loadAuthToken(forServer: config.baseURLString)
     }
     
-    func logout() throws {
-        logger.debug("Logging out user")
+    func getStoredServers() throws -> [(serverURL: String, token: AuthenticationToken)] {
+        let servers = try keychainService.getAllStoredServers()
+        return try servers.compactMap { serverURL in
+            guard let token = try keychainService.loadAuthToken(forServer: serverURL) else { return nil }
+            return (serverURL: serverURL, token: token)
+        }
+    }
+    
+    func switchServer(_ serverURL: String) throws {
+        guard let config = ServerConfiguration(urlString: serverURL) else {
+            throw AuthenticationError.invalidServerURL
+        }
+        try keychainService.saveServerConfiguration(config)
+    }
+    
+    func logout(fromAllServers: Bool = false) throws {
+        if fromAllServers {
+            let servers = try keychainService.getAllStoredServers()
+            for server in servers {
+                try keychainService.removeAuthToken(forServer: server)
+            }
+        } else if let config = try keychainService.loadServerConfiguration() {
+            try keychainService.removeAuthToken(forServer: config.baseURLString)
+        }
         try keychainService.clearAll()
     }
     

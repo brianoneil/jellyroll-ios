@@ -27,14 +27,55 @@ class KeychainService {
     
     // MARK: - Authentication Token
     
-    func saveAuthToken(_ token: AuthenticationToken) throws {
+    func saveAuthToken(_ token: AuthenticationToken, forServer serverURL: String) throws {
+        let key = "auth_token_\(serverURL)"
         let data = try JSONEncoder().encode(token)
-        try saveToKeychain(data, forKey: "auth_token")
+        try saveToKeychain(data, forKey: key)
     }
     
-    func loadAuthToken() throws -> AuthenticationToken? {
-        guard let data = try loadFromKeychain(forKey: "auth_token") else { return nil }
+    func loadAuthToken(forServer serverURL: String) throws -> AuthenticationToken? {
+        let key = "auth_token_\(serverURL)"
+        guard let data = try loadFromKeychain(forKey: key) else { return nil }
         return try JSONDecoder().decode(AuthenticationToken.self, from: data)
+    }
+    
+    func getAllStoredServers() throws -> [String] {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecReturnAttributes as String: true,
+            kSecMatchLimit as String: kSecMatchLimitAll
+        ]
+        
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        
+        if status == errSecItemNotFound {
+            return []
+        }
+        
+        guard status == errSecSuccess,
+              let items = result as? [[String: Any]] else {
+            throw KeychainError.unexpectedStatus(status)
+        }
+        
+        return items.compactMap { item in
+            guard let key = item[kSecAttrAccount as String] as? String,
+                  key.hasPrefix("auth_token_") else { return nil }
+            return String(key.dropFirst("auth_token_".count))
+        }
+    }
+    
+    func removeAuthToken(forServer serverURL: String) throws {
+        let key = "auth_token_\(serverURL)"
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: key
+        ]
+        
+        let status = SecItemDelete(query as CFDictionary)
+        if status != errSecSuccess && status != errSecItemNotFound {
+            throw KeychainError.unexpectedStatus(status)
+        }
     }
     
     // MARK: - Private Helpers

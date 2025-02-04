@@ -2,6 +2,10 @@ import Foundation
 import SwiftUI
 import OSLog
 
+extension Notification.Name {
+    static let serverDidChange = Notification.Name("serverDidChange")
+}
+
 @MainActor
 class LoginViewModel: ObservableObject {
     private let authService = AuthenticationService.shared
@@ -16,8 +20,10 @@ class LoginViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var isAuthenticated = false
     @Published var showServerConfig = false
+    @Published var showServerConfigSheet = false
     @Published var user: JellyfinUser?
     @Published var serverHistory: [ServerHistory] = []
+    @Published var authenticatedServers: [(serverURL: String, user: JellyfinUser)] = []
     
     init() {
         loadServerHistory()
@@ -30,23 +36,53 @@ class LoginViewModel: ObservableObject {
         serverHistory = serverHistoryService.getServerHistory()
     }
     
+    private func loadAuthenticatedServers() {
+        do {
+            let servers = try authService.getStoredServers()
+            authenticatedServers = servers.map { (serverURL: $0.serverURL, user: $0.token.user) }
+        } catch {
+            logger.error("Failed to load authenticated servers: \(error.localizedDescription)")
+        }
+    }
+    
     func selectServer(_ history: ServerHistory) {
         serverURL = history.url
+    }
+    
+    func switchToServer(_ serverURL: String) async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            try authService.switchServer(serverURL)
+            if let token = try authService.getCurrentToken() {
+                self.serverURL = serverURL
+                user = token.user
+                isAuthenticated = true
+                showServerConfig = false
+                
+                // Post notification that server has changed
+                NotificationCenter.default.post(name: .serverDidChange, object: nil)
+            }
+        } catch {
+            logger.error("Failed to switch server: \(error.localizedDescription)")
+            errorMessage = "Failed to switch server: \(error.localizedDescription)"
+        }
+        
+        isLoading = false
     }
     
     private func checkExistingAuth() async {
         logger.debug("Checking existing authentication")
         do {
+            loadAuthenticatedServers()
+            
             if let token = try authService.getCurrentToken() {
                 if !token.isExpired {
                     logger.debug("Found valid authentication token")
                     isAuthenticated = true
                     user = token.user
-                } else {
-                    logger.debug("Token is expired")
                 }
-            } else {
-                logger.debug("No valid authentication token found")
             }
             
             if let config = try authService.getServerConfiguration() {
@@ -67,22 +103,17 @@ class LoginViewModel: ObservableObject {
     func validateAndSaveServer() async {
         isLoading = true
         errorMessage = nil
-        logger.debug("Validating server URL: \(self.serverURL)")
         
         do {
             _ = try await authService.setServerConfiguration(serverURL)
             serverHistoryService.addToHistory(serverURL)
             loadServerHistory()
-            logger.debug("Server configuration saved successfully")
             showServerConfig = false
         } catch AuthenticationError.invalidServerURL {
-            logger.error("Invalid server URL: \(self.serverURL)")
             errorMessage = "Invalid server URL"
         } catch AuthenticationError.serverError(let message) {
-            logger.error("Server error: \(message)")
             errorMessage = message
         } catch {
-            logger.error("Unexpected error: \(error.localizedDescription)")
             errorMessage = "Failed to connect to server: \(error.localizedDescription)"
         }
         
@@ -92,47 +123,45 @@ class LoginViewModel: ObservableObject {
     func login() async {
         isLoading = true
         errorMessage = nil
-        logger.debug("Attempting login for user: \(self.username)")
         
         do {
             let token = try await authService.login(username: username, password: password)
-            logger.debug("Login successful")
             user = token.user
             isAuthenticated = true
+            loadAuthenticatedServers()
+            
+            // Post notification that server has changed (for initial login)
+            NotificationCenter.default.post(name: .serverDidChange, object: nil)
         } catch AuthenticationError.invalidCredentials {
-            logger.error("Invalid credentials for user: \(self.username)")
             errorMessage = "Invalid username or password"
         } catch AuthenticationError.networkError(let error) {
-            logger.error("Network error during login: \(error.localizedDescription)")
             errorMessage = "Network error: \(error.localizedDescription)"
         } catch AuthenticationError.serverError(let message) {
-            logger.error("Server error during login: \(message)")
             errorMessage = message
         } catch {
-            logger.error("Unexpected error during login: \(error.localizedDescription)")
             errorMessage = "An unexpected error occurred: \(error.localizedDescription)"
         }
         
         isLoading = false
     }
     
-    func logout() {
-        logger.debug("Logging out")
+    func logout(fromAllServers: Bool = false) {
         do {
-            try authService.logout()
+            try authService.logout(fromAllServers: fromAllServers)
             isAuthenticated = false
             username = ""
             password = ""
             user = nil
             showServerConfig = true
-            logger.debug("Logout successful")
+            loadAuthenticatedServers()
         } catch {
-            logger.error("Logout failed: \(error.localizedDescription)")
             errorMessage = "Failed to logout: \(error.localizedDescription)"
         }
     }
     
     func showServerConfiguration() {
+        serverURL = ""  // Reset the server URL when showing the configuration
         showServerConfig = true
+        showServerConfigSheet = true
     }
 } 
