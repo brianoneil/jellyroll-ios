@@ -124,7 +124,7 @@ struct JellyfinImage: View {
     private func configureImage(_ image: Image) -> some View {
         image
             .resizable()
-            .aspectRatio(aspectRatio, contentMode: .fill)
+            .aspectRatio(aspectRatio, contentMode: .fit)
             .clipped()
     }
     

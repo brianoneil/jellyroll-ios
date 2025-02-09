@@ -365,7 +365,7 @@ class PlaybackService: NSObject, ObservableObject {
                 throw PlaybackError.serverError("Server returned status code \(httpResponse.statusCode)")
             }
             
-            self.logger.debug("Progress update successful - Position: \(positionTicks), IsPaused: \(isPaused)")
+            // Progress update successful, no need to log
         } catch {
             logger.error("Error updating playback progress: \(error.localizedDescription)")
             throw PlaybackError.networkError(error)

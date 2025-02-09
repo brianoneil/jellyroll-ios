@@ -254,14 +254,31 @@ struct HomeView: View {
                 }
                 
                 Button(action: { showingSettings.toggle() }) {
-                    Circle()
-                        .fill(themeManager.currentTheme.accentGradient)
-                        .frame(width: 28, height: 28)
+                    if let user = loginViewModel.user {
+                        ProfileImageView(
+                            itemId: user.id,
+                            imageTag: nil,
+                            size: 28,
+                            borderWidth: 0
+                        )
                         .overlay(
-                            Text(String(loginViewModel.user?.name.prefix(1).uppercased() ?? "?"))
+                            Text(String(user.name.prefix(1).uppercased()))
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(themeManager.currentTheme.primaryTextColor)
                         )
+                    } else {
+                        ProfileImageView(
+                            itemId: "",
+                            imageTag: nil,
+                            size: 28,
+                            borderWidth: 0
+                        )
+                        .overlay(
+                            Text("?")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                        )
+                    }
                 }
             }
         }

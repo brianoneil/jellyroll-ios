@@ -610,65 +610,39 @@ struct CastCrewTab: View, SeriesDetailTabView {
     }
 }
 
-struct CircularProfileImage: View {
-    let itemId: String
-    let imageTag: String?
-    let size: CGFloat
-    @EnvironmentObject private var themeManager: ThemeManager
-    
-    var body: some View {
-        Group {
-            if imageTag != nil {
-                JellyfinImage(
-                    itemId: itemId,
-                    imageType: .primary,
-                    aspectRatio: 1,
-                    cornerRadius: 0,
-                    fallbackIcon: "person.circle.fill"
-                )
-                .frame(width: size, height: size)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(themeManager.currentTheme.surfaceColor.opacity(0.1), lineWidth: 1))
-            } else {
-                Image(systemName: "person.circle.fill")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: size, height: size)
-                    .foregroundColor(themeManager.currentTheme.surfaceColor)
-            }
-        }
-    }
-}
-
 struct CastMemberCard: View {
     let member: CastMember
     @EnvironmentObject private var themeManager: ThemeManager
     
     var body: some View {
-        VStack(alignment: .center, spacing: 8) {
+        VStack(spacing: 8) {
             // Profile Image
-            CircularProfileImage(
+            ProfileImageView(
                 itemId: member.id,
                 imageTag: member.imageTag,
                 size: 90
             )
             
-            // Name and Role
-            VStack(alignment: .center, spacing: 4) {
+            // Fixed height container for text
+            VStack(spacing: 4) {
+                // Name
                 Text(member.name)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(themeManager.currentTheme.primaryTextColor)
                     .lineLimit(1)
+                    .frame(height: 16)
                 
+                // Role - fixed height for 2 lines
                 Text(member.role)
                     .font(.system(size: 11))
                     .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
+                    .frame(height: 28)
             }
             .frame(width: 90)
         }
-        .padding(.vertical, 8)
+        .frame(height: 150) // Fixed total height for the card
     }
 }
 
@@ -677,29 +651,33 @@ struct CrewMemberCard: View {
     @EnvironmentObject private var themeManager: ThemeManager
     
     var body: some View {
-        VStack(alignment: .center, spacing: 6) {
+        VStack(spacing: 6) {
             // Profile Image
-            CircularProfileImage(
+            ProfileImageView(
                 itemId: member.id,
                 imageTag: member.imageTag,
                 size: 65
             )
             
-            // Name and Role
-            VStack(alignment: .center, spacing: 2) {
+            // Fixed height container for text
+            VStack(spacing: 2) {
+                // Name
                 Text(member.name)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(themeManager.currentTheme.primaryTextColor)
                     .lineLimit(1)
+                    .frame(height: 15)
                 
+                // Role
                 Text(member.type)
                     .font(.system(size: 10))
                     .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                     .lineLimit(1)
+                    .frame(height: 12)
             }
             .frame(width: 80)
         }
-        .padding(.vertical, 6)
+        .frame(height: 106) // Fixed total height for the card
     }
 }
 

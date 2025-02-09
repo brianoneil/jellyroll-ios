@@ -324,7 +324,7 @@ class PlaybackViewModel: ObservableObject {
                     positionTicks: positionTicks,
                     isPaused: willPause
                 )
-                logger.debug("[Playback] Progress update successful - IsPaused: \(willPause)")
+                // Progress update successful, no logging needed
             } catch {
                 logger.error("[Playback] Failed to update playback state: \(error)")
             }
