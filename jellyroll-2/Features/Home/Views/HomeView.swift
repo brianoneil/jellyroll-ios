@@ -255,28 +255,14 @@ struct HomeView: View {
                 
                 Button(action: { showingSettings.toggle() }) {
                     if let user = loginViewModel.user {
-                        ProfileImageView(
-                            itemId: user.id,
-                            imageTag: nil,
-                            size: 28,
-                            borderWidth: 0
-                        )
-                        .overlay(
-                            Text(String(user.name.prefix(1).uppercased()))
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                        UserProfileView(
+                            userId: user.id,
+                            userName: user.name
                         )
                     } else {
-                        ProfileImageView(
-                            itemId: "",
-                            imageTag: nil,
-                            size: 28,
-                            borderWidth: 0
-                        )
-                        .overlay(
-                            Text("?")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                        UserProfileView(
+                            userId: "",
+                            userName: "?"
                         )
                     }
                 }

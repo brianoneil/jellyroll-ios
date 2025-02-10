@@ -51,4 +51,34 @@ struct ProfileImageView: View {
                 )
         }
     }
+}
+
+/// A specialized view for displaying the user profile in the navigation bar
+struct UserProfileView: View {
+    let userId: String
+    let userName: String
+    let size: CGFloat
+    
+    @EnvironmentObject private var themeManager: ThemeManager
+    
+    init(userId: String, userName: String, size: CGFloat = 28) {
+        self.userId = userId
+        self.userName = userName
+        self.size = size
+    }
+    
+    private var initial: String {
+        userName.prefix(1).uppercased()
+    }
+    
+    var body: some View {
+        Circle()
+            .fill(themeManager.currentTheme.accentGradient)
+            .frame(width: size, height: size)
+            .overlay(
+                Text(initial)
+                    .font(.system(size: size * 0.5, weight: .bold))
+                    .foregroundColor(.white)
+            )
+    }
 } 

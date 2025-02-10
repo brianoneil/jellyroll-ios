@@ -20,6 +20,14 @@ enum SeriesDetailTab: Int, CaseIterable {
         }
     }
     
+    var filledIcon: String {
+        switch self {
+        case .overview: return "info.circle.fill"
+        case .episodes: return "list.bullet.rectangle.fill"
+        case .castCrew: return "person.2.fill"
+        }
+    }
+    
     var title: String {
         switch self {
         case .overview: return "Overview"
@@ -101,16 +109,14 @@ enum SeriesDetailLayouts {
         @State private var isDownloading = false
         @State private var downloadError: String?
         
-        var body: some View {
+        private var backgroundLayer: some View {
             ZStack {
-                // Background Image Layer
                 LayoutComponents.BackdropImage(
                     itemId: item.id,
                     blurHash: item.imageBlurHashes["Primary"]?.values.first
                 )
                 .edgesIgnoringSafeArea(.all)
                 
-                // Optional overlay gradient
                 LinearGradient(
                     gradient: Gradient(colors: [
                         .clear,
@@ -121,70 +127,89 @@ enum SeriesDetailLayouts {
                     endPoint: .bottom
                 )
                 .edgesIgnoringSafeArea(.all)
-                
-                // Content Layer
-                ZStack(alignment: .trailing) {
-                    Color.clear // Add a clear background to ensure transparency
-                    
-                    VerticalPageViewController(
-                        pages: [
-                            AnyView(
-                                OverviewTab(
-                                    item: item,
-                                    hasProgress: hasProgress,
-                                    progressPercentage: progressPercentage,
-                                    progressText: progressText,
-                                    showingPlayer: $showingPlayer
-                                )
-                            ),
-                            AnyView(EpisodesTab(item: item)),
-                            AnyView(CastCrewTab(item: item))
-                        ],
-                        currentPage: Binding(
-                            get: { selectedTab.rawValue },
-                            set: { selectedTab = SeriesDetailTab(rawValue: $0) ?? .overview }
-                        )
-                    )
-                    .edgesIgnoringSafeArea(.all)
-                    
-                    // Tab Indicators
-                    VStack(spacing: 20) {
-                        ForEach(SeriesDetailTab.allCases, id: \.self) { tab in
-                            Button(action: { selectedTab = tab }) {
-                                Image(systemName: tab.icon)
-                                    .font(.system(size: 16))
-                                    .foregroundColor(selectedTab == tab ? themeManager.currentTheme.accentColor : themeManager.currentTheme.secondaryTextColor)
-                            }
-                        }
-                    }
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 2)
-                    .background(.ultraThinMaterial)
-                    .background(themeManager.currentTheme.surfaceColor.opacity(0.3))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .padding(.trailing, 8)
-                    .padding(.vertical, 32)
-                    
-                    // Back Button (Top Left)
-                    VStack {
-                        HStack {
-                            Button(action: dismiss) {
-                                Image(systemName: "chevron.left")
-                                    .font(.system(size: 24, weight: .medium))
-                                    .foregroundColor(themeManager.currentTheme.primaryTextColor)
-                                    .padding(12)
-                                    .background(themeManager.currentTheme.surfaceColor.opacity(0.3))
-                                    .clipShape(Circle())
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.top, 36)
-                            
-                            Spacer()
-                        }
-                        Spacer()
+            }
+        }
+        
+        private var tabIndicators: some View {
+            VStack(spacing: 20) {
+                ForEach(SeriesDetailTab.allCases, id: \.self) { tab in
+                    Button(action: { selectedTab = tab }) {
+                        Image(systemName: selectedTab == tab ? tab.filledIcon : tab.icon)
+                            .font(.system(size: 16))
+                            .foregroundStyle(selectedTab == tab ? 
+                                themeManager.currentTheme.accentGradient : 
+                                LinearGradient(
+                                    colors: [themeManager.currentTheme.secondaryTextColor],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                ))
                     }
                 }
+            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 2)
+            .background(.ultraThinMaterial)
+            .background(themeManager.currentTheme.surfaceColor.opacity(0.3))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .padding(.trailing, 8)
+            .padding(.vertical, 32)
+        }
+        
+        private var backButton: some View {
+            VStack {
+                HStack {
+                    Button(action: dismiss) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 24, weight: .medium))
+                            .foregroundColor(themeManager.currentTheme.primaryTextColor)
+                            .padding(12)
+                            .background(themeManager.currentTheme.surfaceColor.opacity(0.3))
+                            .clipShape(Circle())
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 36)
+                    
+                    Spacer()
+                }
+                Spacer()
+            }
+        }
+        
+        private var contentLayer: some View {
+            ZStack(alignment: .trailing) {
+                Color.clear
+                
+                VerticalPageViewController(
+                    pages: [
+                        AnyView(
+                            OverviewTab(
+                                item: item,
+                                hasProgress: hasProgress,
+                                progressPercentage: progressPercentage,
+                                progressText: progressText,
+                                showingPlayer: $showingPlayer
+                            )
+                        ),
+                        AnyView(EpisodesTab(item: item)),
+                        AnyView(CastCrewTab(item: item))
+                    ],
+                    currentPage: Binding(
+                        get: { selectedTab.rawValue },
+                        set: { selectedTab = SeriesDetailTab(rawValue: $0) ?? .overview }
+                    )
+                )
                 .edgesIgnoringSafeArea(.all)
+                
+                tabIndicators
+                backButton
+            }
+            .edgesIgnoringSafeArea(.all)
+        }
+        
+        var body: some View {
+            ZStack {
+                backgroundLayer
+                contentLayer
             }
             .background(Color.clear)
             .edgesIgnoringSafeArea(.all)
