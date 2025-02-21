@@ -22,6 +22,73 @@ protocol Theme {
     var textGradient: LinearGradient { get }
     var overlayGradient: LinearGradient { get }
     var cardGradient: LinearGradient { get }
+    
+    // Typography
+    var h1Style: Font { get }
+    var h2Style: Font { get }
+    var h3Style: Font { get }
+    var h4Style: Font { get }
+    var bodyLargeStyle: Font { get }
+    var bodyMediumStyle: Font { get }
+    var bodySmallStyle: Font { get }
+    var captionStyle: Font { get }
+    
+    // Typography Utility Functions
+    func scaledFont(_ font: Font, for sizeClass: UIUserInterfaceSizeClass) -> Font
+    
+    // Semantic Colors
+    var activeColor: Color { get }
+    var inactiveColor: Color { get }
+    var errorColor: Color { get }
+    var successColor: Color { get }
+    var warningColor: Color { get }
+    var selectedColor: Color { get }
+    var focusedColor: Color { get }
+    var disabledColor: Color { get }
+    
+    // Color Adaptation Methods
+    func adaptColor(_ color: Color, for condition: ColorSystem.LightingCondition) -> Color
+    func ensureContrast(textColor: Color, on backgroundColor: Color) -> Color
+    func adjustForTimeOfDay(_ color: Color, hour: Int) -> Color
+}
+
+extension Theme {
+    // Default implementation of typography styles
+    var h1Style: Font { TypographyStyles.Headings.h1 }
+    var h2Style: Font { TypographyStyles.Headings.h2 }
+    var h3Style: Font { TypographyStyles.Headings.h3 }
+    var h4Style: Font { TypographyStyles.Headings.h4 }
+    var bodyLargeStyle: Font { TypographyStyles.Body.large }
+    var bodyMediumStyle: Font { TypographyStyles.Body.medium }
+    var bodySmallStyle: Font { TypographyStyles.Body.small }
+    var captionStyle: Font { TypographyStyles.Body.caption }
+    
+    func scaledFont(_ font: Font, for sizeClass: UIUserInterfaceSizeClass) -> Font {
+        TypographyStyles.scaleFont(font, for: sizeClass)
+    }
+    
+    // Default implementations for semantic colors
+    var activeColor: Color { ColorSystem.SemanticColors.active }
+    var inactiveColor: Color { ColorSystem.SemanticColors.inactive }
+    var errorColor: Color { ColorSystem.SemanticColors.error }
+    var successColor: Color { ColorSystem.SemanticColors.success }
+    var warningColor: Color { ColorSystem.SemanticColors.warning }
+    var selectedColor: Color { ColorSystem.SemanticColors.selected }
+    var focusedColor: Color { ColorSystem.SemanticColors.focused }
+    var disabledColor: Color { ColorSystem.SemanticColors.disabled }
+    
+    // Default implementations for color adaptation methods
+    func adaptColor(_ color: Color, for condition: ColorSystem.LightingCondition) -> Color {
+        ColorSystem.LightingAdaptation.adapt(color, for: condition)
+    }
+    
+    func ensureContrast(textColor: Color, on backgroundColor: Color) -> Color {
+        ColorSystem.ContrastUtilities.ensureTextContrast(textColor: textColor, on: backgroundColor)
+    }
+    
+    func adjustForTimeOfDay(_ color: Color, hour: Int) -> Color {
+        ColorSystem.TimeBasedAdaptation.adjustForTimeOfDay(color, hour: hour)
+    }
 }
 
 struct DarkTheme: Theme {
