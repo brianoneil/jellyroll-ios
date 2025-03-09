@@ -83,7 +83,7 @@ struct CastMember: Codable, Identifiable {
     }
 }
 
-struct MediaItem: Codable, Identifiable {
+struct MediaItem: Codable, Identifiable, Equatable {
     let id: String
     let name: String
     let type: String
@@ -113,6 +113,10 @@ struct MediaItem: Codable, Identifiable {
     let albumArtist: String?
     let artists: [String]?
     let album: String?
+    
+    static func == (lhs: MediaItem, rhs: MediaItem) -> Bool {
+        lhs.id == rhs.id
+    }
     
     private enum CodingKeys: String, CodingKey {
         case id = "Id"

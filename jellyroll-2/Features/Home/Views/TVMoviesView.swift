@@ -1,33 +1,19 @@
 import SwiftUI
 
+#if os(tvOS)
 /// A tvOS-optimized view for browsing movie libraries
 struct TVMoviesView: View {
-    let libraries: [LibraryItem]
-    @StateObject private var libraryViewModel = LibraryViewModel()
     @EnvironmentObject private var themeManager: ThemeManager
-    @State private var selectedMovie: MediaItem?
+    @StateObject private var libraryViewModel = LibraryViewModel()
     @State private var selectedGenre: String?
+    @State private var selectedMovie: MediaItem?
+    let libraries: [LibraryItem]
     
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 48) {
                 // Genre Selection
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: 24) {
-                        Button("All") {
-                            selectedGenre = nil
-                        }
-                        .buttonStyle(.tvCard(isSelected: selectedGenre == nil))
-                        
-                        ForEach(libraryViewModel.allGenres, id: \.self) { genre in
-                            Button(genre) {
-                                selectedGenre = genre
-                            }
-                            .buttonStyle(.tvCard(isSelected: selectedGenre == genre))
-                        }
-                    }
-                    .padding(.horizontal)
-                }
+                TVMovieGenreSelectionView(selectedGenre: $selectedGenre, genres: libraryViewModel.allGenres)
                 
                 // Movies Grid
                 ForEach(libraries) { library in
@@ -66,35 +52,42 @@ struct TVMoviesView: View {
             }
             .padding(.vertical, 48)
         }
+        .task {
+            await libraryViewModel.loadLibraries()
+        }
         .fullScreenCover(item: $selectedMovie) { movie in
             VideoPlayerView(item: movie)
         }
     }
 }
 
-/// A custom button style for tvOS cards
-struct TVCardButtonStyle: ButtonStyle {
-    let isSelected: Bool
+/// Genre selection view component for movies
+struct TVMovieGenreSelectionView: View {
+    @Binding var selectedGenre: String?
+    let genres: [String]
     
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.title3)
-            .padding(.horizontal, 24)
-            .padding(.vertical, 12)
-            .background(isSelected ? Color.white : Color.white.opacity(0.1))
-            .foregroundColor(isSelected ? .black : .white)
-            .cornerRadius(8)
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            LazyHStack(spacing: 24) {
+                Button("All") {
+                    selectedGenre = nil
+                }
+                .buttonStyle(TVCardButtonStyle(isSelected: selectedGenre == nil))
+                
+                ForEach(genres, id: \.self) { genre in
+                    Button(genre) {
+                        selectedGenre = genre
+                    }
+                    .buttonStyle(TVCardButtonStyle(isSelected: selectedGenre == genre))
+                }
+            }
+            .padding(.horizontal)
+        }
     }
 }
 
-extension ButtonStyle where Self == TVCardButtonStyle {
-    static func tvCard(isSelected: Bool) -> TVCardButtonStyle {
-        TVCardButtonStyle(isSelected: isSelected)
-    }
-}
-
-#Preview {
+#Preview("TV Movies") {
     TVMoviesView(libraries: [])
         .environmentObject(ThemeManager())
-} 
+}
+#endif 

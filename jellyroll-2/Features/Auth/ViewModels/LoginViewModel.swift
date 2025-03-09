@@ -18,6 +18,7 @@ class LoginViewModel: ObservableObject {
     @Published var showServerConfig = false
     @Published var user: JellyfinUser?
     @Published var serverHistory: [ServerHistory] = []
+    @Published var currentServer: ServerHistory?
     
     init() {
         loadServerHistory()
@@ -32,6 +33,7 @@ class LoginViewModel: ObservableObject {
     
     func selectServer(_ history: ServerHistory) {
         serverURL = history.url
+        currentServer = history
     }
     
     private func checkExistingAuth() async {
@@ -73,6 +75,9 @@ class LoginViewModel: ObservableObject {
             _ = try await authService.setServerConfiguration(serverURL)
             serverHistoryService.addToHistory(serverURL)
             loadServerHistory()
+            if let history = serverHistory.first(where: { $0.url == serverURL }) {
+                currentServer = history
+            }
             logger.debug("Server configuration saved successfully")
             showServerConfig = false
         } catch AuthenticationError.invalidServerURL {
@@ -124,6 +129,7 @@ class LoginViewModel: ObservableObject {
             username = ""
             password = ""
             user = nil
+            currentServer = nil
             showServerConfig = true
             logger.debug("Logout successful")
         } catch {

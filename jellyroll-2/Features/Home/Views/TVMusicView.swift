@@ -1,50 +1,25 @@
 import SwiftUI
 
+#if os(tvOS)
 /// A tvOS-optimized view for browsing music libraries
 struct TVMusicView: View {
-    let libraries: [LibraryItem]
-    @StateObject private var libraryViewModel = LibraryViewModel()
     @EnvironmentObject private var themeManager: ThemeManager
-    @State private var selectedAlbum: MediaItem?
-    @State private var selectedCategory: MusicCategory = .albums
-    
-    enum MusicCategory {
-        case albums
-        case artists
-        case genres
-        case playlists
-        
-        var title: String {
-            switch self {
-            case .albums: return "Albums"
-            case .artists: return "Artists"
-            case .genres: return "Genres"
-            case .playlists: return "Playlists"
-            }
-        }
-    }
+    @StateObject private var libraryViewModel = LibraryViewModel()
+    @State private var selectedGenre: String?
+    let libraries: [LibraryItem]
     
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 48) {
-                // Category Selection
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: 24) {
-                        ForEach([MusicCategory.albums, .artists, .genres, .playlists], id: \.self) { category in
-                            Button(category.title) {
-                                selectedCategory = category
-                            }
-                            .buttonStyle(.tvCard(isSelected: selectedCategory == category))
-                        }
-                    }
-                    .padding(.horizontal)
-                }
+                // Genre Selection
+                TVMusicGenreSelectionView(selectedGenre: $selectedGenre, genres: libraryViewModel.allGenres)
                 
                 // Music Grid
                 ForEach(libraries) { library in
-                    let musicItems = libraryViewModel.getMusicItems(for: library.id)
+                    let albums = libraryViewModel.getMusicItems(for: library.id)
+                    let filteredAlbums = selectedGenre == nil ? albums : albums.filter { $0.genres.contains(selectedGenre!) }
                     
-                    if !musicItems.isEmpty {
+                    if !filteredAlbums.isEmpty {
                         VStack(alignment: .leading, spacing: 24) {
                             if libraries.count > 1 {
                                 Text(library.name)
@@ -60,10 +35,9 @@ struct TVMusicView: View {
                                 ],
                                 spacing: 48
                             ) {
-                                ForEach(musicItems) { item in
-                                    MusicCard(item: item)
+                                ForEach(filteredAlbums) { album in
+                                    TVMusicCard(album: album)
                                         .frame(height: 300)
-                                        .focusable()
                                 }
                             }
                             .padding(.horizontal)
@@ -73,42 +47,82 @@ struct TVMusicView: View {
             }
             .padding(.vertical, 48)
         }
+        .task {
+            await libraryViewModel.loadLibraries()
+        }
     }
 }
 
-struct MusicCard: View {
-    let item: MediaItem
+struct TVMusicCard: View {
+    let album: MediaItem
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.isFocused) private var isFocused
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            // Album Art
             JellyfinImage(
-                itemId: item.id,
+                itemId: album.id,
                 imageType: .primary,
                 aspectRatio: 1,
                 cornerRadius: 8,
                 fallbackIcon: "music.note"
             )
             
+            // Album Info
             VStack(alignment: .leading, spacing: 4) {
-                Text(item.name)
+                Text(album.name)
                     .font(.title3)
                     .fontWeight(.semibold)
                     .foregroundColor(themeManager.currentTheme.primaryTextColor)
                     .lineLimit(1)
                 
-                if let artistText = item.artistText {
-                    Text(artistText)
+                if let artist = album.artistText {
+                    Text(artist)
                         .font(.body)
                         .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                         .lineLimit(1)
                 }
             }
         }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(themeManager.currentTheme.elevatedSurfaceColor)
+                .brightness(isFocused ? 0.1 : 0)
+        )
+        .scaleEffect(isFocused ? 1.02 : 1.0)
+        .animation(.spring(response: 0.3), value: isFocused)
     }
 }
 
-#Preview {
+/// Genre selection view component for music
+struct TVMusicGenreSelectionView: View {
+    @Binding var selectedGenre: String?
+    let genres: [String]
+    
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            LazyHStack(spacing: 24) {
+                Button("All") {
+                    selectedGenre = nil
+                }
+                .buttonStyle(TVCardButtonStyle(isSelected: selectedGenre == nil))
+                
+                ForEach(genres, id: \.self) { genre in
+                    Button(genre) {
+                        selectedGenre = genre
+                    }
+                    .buttonStyle(TVCardButtonStyle(isSelected: selectedGenre == genre))
+                }
+            }
+            .padding(.horizontal)
+        }
+    }
+}
+
+#Preview("TV Music") {
     TVMusicView(libraries: [])
         .environmentObject(ThemeManager())
-} 
+}
+#endif 

@@ -11,6 +11,7 @@ class LibraryViewModel: ObservableObject {
     @Published var latestMedia: [MediaItem] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var allGenres: [String] = []
     
     // Single dictionary to store all media items by type and library ID
     @Published private var mediaItems: [LibraryType: [String: [MediaItem]]] = [
@@ -37,6 +38,9 @@ class LibraryViewModel: ObservableObject {
             
             // Load items for each library type
             await loadLibraryItems()
+            
+            // Update genres
+            updateAllGenres()
             
         } catch LibraryError.invalidToken {
             errorMessage = "Please log in again"
@@ -94,4 +98,15 @@ class LibraryViewModel: ObservableObject {
     func getMovieItems(for libraryId: String) -> [MediaItem] { getItems(type: .movies, libraryId: libraryId) }
     func getTVShowItems(for libraryId: String) -> [MediaItem] { getItems(type: .tvshows, libraryId: libraryId) }
     func getMusicItems(for libraryId: String) -> [MediaItem] { getItems(type: .music, libraryId: libraryId) }
+    
+    private func updateAllGenres() {
+        // Collect all unique genres from TV shows
+        var genres = Set<String>()
+        for (_, shows) in mediaItems[.tvshows] ?? [:] {
+            for show in shows {
+                genres.formUnion(show.genres)
+            }
+        }
+        allGenres = Array(genres).sorted()
+    }
 } 

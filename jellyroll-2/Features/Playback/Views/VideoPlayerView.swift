@@ -223,27 +223,7 @@ struct AVPlayerControllerRepresentable: UIViewControllerRepresentable {
     }
 }
 
-#if !os(tvOS)
-extension VideoPlayerView: UIViewControllerRepresentableContext {
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-    
-    class Coordinator: NSObject, AVPlayerViewControllerDelegate {
-        let parent: VideoPlayerView
-        
-        init(_ parent: VideoPlayerView) {
-            self.parent = parent
-        }
-        
-        func playerViewController(_ playerViewController: AVPlayerViewController, 
-                                restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void) {
-            completionHandler(true)
-        }
-        
-        func playerViewControllerShouldAutomaticallyDismissAtPictureInPictureStart(_ playerViewController: AVPlayerViewController) -> Bool {
-            return false
-        }
-    }
-}
-#endif 
+#Preview("Video Player") {
+    VideoPlayerView(item: MediaItem(from: [:]))
+        .environmentObject(ThemeManager())
+} 

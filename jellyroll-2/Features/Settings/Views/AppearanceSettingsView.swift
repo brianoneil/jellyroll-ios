@@ -13,17 +13,25 @@ struct AppearanceSettingsView: View {
                 spacing: 32
             ) {
                 // Theme Selection
-                ForEach(ThemeManager.Theme.allCases) { theme in
-                    Button {
-                        themeManager.currentTheme = theme
-                    } label: {
-                        ThemeCard(
-                            theme: theme,
-                            isSelected: themeManager.currentTheme == theme
-                        )
-                    }
-                    .buttonStyle(.plain)
+                Button {
+                    themeManager.setTheme(.light)
+                } label: {
+                    ThemeCard(
+                        themeType: .light,
+                        isSelected: themeManager.currentThemeType == .light
+                    )
                 }
+                .buttonStyle(.plain)
+                
+                Button {
+                    themeManager.setTheme(.dark)
+                } label: {
+                    ThemeCard(
+                        themeType: .dark,
+                        isSelected: themeManager.currentThemeType == .dark
+                    )
+                }
+                .buttonStyle(.plain)
             }
             .padding(48)
         }
@@ -33,10 +41,15 @@ struct AppearanceSettingsView: View {
 
 /// A card displaying a theme preview
 struct ThemeCard: View {
-    let theme: ThemeManager.Theme
+    let themeType: ThemeType
     let isSelected: Bool
     
+    @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.isFocused) private var isFocused
+    
+    private var theme: Theme {
+        themeType == .dark ? DarkTheme() : LightTheme()
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -67,12 +80,12 @@ struct ThemeCard: View {
             // Theme Info
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(theme.name)
+                    Text(themeType == .dark ? "Dark Theme" : "Light Theme")
                         .font(.title3)
                         .fontWeight(.semibold)
                         .foregroundColor(theme.primaryTextColor)
                     
-                    Text(theme.description)
+                    Text(themeType == .dark ? "Perfect for low-light environments" : "Classic bright appearance")
                         .font(.body)
                         .foregroundColor(theme.secondaryTextColor)
                 }
@@ -87,12 +100,16 @@ struct ThemeCard: View {
             }
         }
         .padding(24)
-        .background(
+        .background(theme.cardGradient)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .fill(theme.elevatedSurfaceColor)
-                .brightness(isFocused ? 0.1 : 0)
+                .stroke(
+                    isSelected ? theme.accentColor : Color.clear,
+                    lineWidth: 2
+                )
         )
-        .scaleEffect(isFocused ? 1.02 : 1.0)
+        .scaleEffect(isFocused ? 1.05 : 1.0)
         .animation(.spring(response: 0.3), value: isFocused)
     }
 }

@@ -27,7 +27,7 @@ struct TVSettingsView: View {
                             .foregroundColor(themeManager.currentTheme.primaryTextColor)
                         
                         if let server = loginViewModel.currentServer {
-                            Text(server.name)
+                            Text(server.url)
                                 .font(.title3)
                                 .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                         }
