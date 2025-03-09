@@ -89,18 +89,14 @@ class PlaybackViewModel: ObservableObject {
             Task { @MainActor in
                 switch item.status {
                 case .failed:
-                    self.logger.error("[Player] Playback failed: \(String(describing: item.error))")
-                    if let error = item.error as NSError? {
-                        self.logger.error("[Player] Error domain: \(error.domain), code: \(error.code)")
-                        self.logger.error("[Player] Error userInfo: \(error.userInfo)")
-                    }
+                    self.logger.error("[Player] Error: \(String(describing: item.error))")
                     self.errorMessage = item.error?.localizedDescription ?? "Playback failed"
                 case .readyToPlay:
-                    self.logger.debug("[Player] Player item ready to play")
+                    self.logger.debug("[Player] Ready to play")
                 case .unknown:
-                    self.logger.debug("[Player] Player item status unknown")
+                    self.logger.debug("[Player] Status unknown")
                 @unknown default:
-                    self.logger.debug("[Player] Player item status: unknown state")
+                    self.logger.debug("[Player] Unknown state")
                 }
             }
         }
@@ -128,20 +124,13 @@ class PlaybackViewModel: ObservableObject {
                     do {
                         let duration = try await asset.load(.duration)
                         let tracks = try await asset.load(.tracks)
-                        self.logger.debug("[Player] Asset duration: \(duration.seconds)")
-                        for track in tracks {
-                            let isEnabled = try await track.load(.isEnabled)
-                            self.logger.debug("[Player] Track: \(track.mediaType.rawValue), enabled: \(isEnabled)")
-                        }
+                        self.logger.debug("[Player] Duration: \(duration.seconds)s, Tracks: \(tracks.count)")
                     } catch {
                         self.logger.error("[Player] Failed to load asset properties: \(error)")
                     }
                 } else {
                     // Pre-iOS 16 fallback
-                    self.logger.debug("[Player] Asset duration: \(asset.duration.seconds)")
-                    for track in asset.tracks {
-                        self.logger.debug("[Player] Track: \(track.mediaType.rawValue), enabled: \(track.isEnabled)")
-                    }
+                    self.logger.debug("[Player] Duration: \(asset.duration.seconds)s, Tracks: \(asset.tracks.count)")
                 }
             }
         }
@@ -226,7 +215,7 @@ class PlaybackViewModel: ObservableObject {
                     let playerItem = AVPlayerItem(asset: asset)
                     
                     await MainActor.run {
-                        logger.debug("[Playback] Configuring player")
+                        logger.debug("[Player] Starting playback")
                         configurePlayer(with: playerItem)
                         setupTimeObserver()
                         player?.play()
@@ -235,12 +224,10 @@ class PlaybackViewModel: ObservableObject {
                 }
             } else {
                 // Stream from server
-                logger.debug("[Playback] Streaming from server")
+                logger.debug("[Player] Starting stream playback")
                 let streamURL = try await playbackService.getPlaybackURL(for: item)
-                logger.debug("[Playback] Got stream URL: \(streamURL.absoluteString)")
                 
                 let asset = AVURLAsset(url: streamURL)
-                logger.debug("[Playback] Created asset for streaming")
                 
                 // Load essential properties asynchronously
                 do {
@@ -278,7 +265,7 @@ class PlaybackViewModel: ObservableObject {
                     logger.debug("[Playback] Creating player item for streaming")
                     let playerItem = AVPlayerItem(asset: asset)
                     await MainActor.run {
-                        logger.debug("[Playback] Configuring player for streaming")
+                        logger.debug("[Player] Starting stream playback")
                         configurePlayer(with: playerItem)
                         setupTimeObserver()
                         player?.play()
@@ -290,7 +277,7 @@ class PlaybackViewModel: ObservableObject {
         } catch {
             await MainActor.run {
                 errorMessage = error.localizedDescription
-                logger.error("Playback error: \(error)")
+                logger.error("[Player] Error: \(error)")
             }
         }
         
@@ -300,23 +287,20 @@ class PlaybackViewModel: ObservableObject {
     }
     
     func togglePlayPause() async {
-        let willPause = self.isPlaying // Store the state before we toggle
-        logger.debug("[Playback] Toggle playback requested - Current state: isPlaying=\(self.isPlaying), willPause=\(willPause)")
+        let willPause = self.isPlaying
+        logger.debug("[Player] \(willPause ? "Pausing" : "Resuming") playback")
         
         self.isPlaying.toggle()
         
         if willPause {
-            logger.debug("[Playback] Pausing playback")
             self.player?.pause()
         } else {
-            logger.debug("[Playback] Resuming playback")
             self.player?.play()
         }
         
         // Report state change immediately
         if let item = self.currentItem {
             let positionTicks = PlaybackProgressUtility.secondsToTicks(self.currentTime)
-            logger.debug("[Playback] Sending progress update - Position: \(self.currentTime), Ticks: \(positionTicks), IsPaused: \(willPause)")
             
             do {
                 try await playbackService.updatePlaybackProgress(
@@ -324,12 +308,9 @@ class PlaybackViewModel: ObservableObject {
                     positionTicks: positionTicks,
                     isPaused: willPause
                 )
-                // Progress update successful, no logging needed
             } catch {
-                logger.error("[Playback] Failed to update playback state: \(error)")
+                logger.error("[Player] Failed to update playback state: \(error)")
             }
-        } else {
-            logger.error("[Playback] No current item available for progress update")
         }
     }
     

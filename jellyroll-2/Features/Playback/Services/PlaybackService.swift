@@ -531,13 +531,7 @@ class PlaybackService: NSObject, ObservableObject {
     private func getItemId(for task: URLSessionDownloadTask) -> String? {
         let itemId = self.downloadTasks[task]
         if itemId == nil {
-            // Enhanced logging to help diagnose the issue
-            self.logger.error("""
-                [Download] Failed to find itemId for task: \(task.taskIdentifier)
-                Active download tasks: \(self.downloadTasks.map { "Task \($0.key.taskIdentifier): \($0.value)" }.joined(separator: ", "))
-                Active downloads: \(self.activeDownloads.keys.joined(separator: ", "))
-                Processing tasks: \(self.processingTasks)
-                """)
+            self.logger.error("[Download] Failed to find itemId for task: \(task.taskIdentifier)")
         }
         return itemId
     }
@@ -572,19 +566,22 @@ class PlaybackService: NSObject, ObservableObject {
         request.httpBody = jsonData
         
         do {
-            let (_, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await URLSession.shared.data(for: request)
             
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw PlaybackError.serverError("Invalid response")
             }
             
-            // Accept both 200 and 204 as valid responses
-            if httpResponse.statusCode != 200 && httpResponse.statusCode != 204 {
+            if httpResponse.statusCode != 200 {
+                if let errorText = String(data: data, encoding: .utf8) {
+                    logger.error("Server error: \(errorText)")
+                }
                 throw PlaybackError.serverError("Server returned status code \(httpResponse.statusCode)")
             }
             
             // Clear the session ID after successful stop
             currentPlaySessionId = nil
+            
         } catch {
             logger.error("Error stopping playback session: \(error)")
             throw PlaybackError.networkError(error)
@@ -826,24 +823,10 @@ extension PlaybackService: URLSessionDownloadDelegate {
             }
             
             let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
-            let progressPercent = Int(progress * 100)
-            let bytesWrittenMB = Double(totalBytesWritten) / 1_048_576
-            let totalSizeMB = Double(totalBytesExpectedToWrite) / 1_048_576
-            
-            self.logger.debug("""
-                [Download Progress]
-                Item: \(itemId)
-                Progress: \(progressPercent)%
-                Written: \(String(format: "%.2f", bytesWrittenMB)) MB
-                Total Size: \(String(format: "%.2f", totalSizeMB)) MB
-                Bytes Written: \(totalBytesWritten)
-                Total Bytes: \(totalBytesExpectedToWrite)
-                """)
             
             if var state = self.activeDownloads[itemId] {
                 state.progress = progress
                 self.activeDownloads[itemId] = state
-                self.logger.debug("[Download State] Updated progress for \(itemId) to \(progressPercent)%")
             } else {
                 self.logger.error("[Download State] No active download state found for \(itemId)")
             }
@@ -856,18 +839,9 @@ extension PlaybackService: URLSessionDownloadDelegate {
         Task { @MainActor [weak self] in
             guard let self else { return }
             
-            // Log the state before processing
-            self.logger.debug("""
-                [Download Complete] Starting completion for task \(downloadTask.taskIdentifier)
-                Active download tasks: \(self.downloadTasks.map { "Task \($0.key.taskIdentifier): \($0.value)" }.joined(separator: ", "))
-                Active downloads: \(self.activeDownloads.keys.joined(separator: ", "))
-                Processing tasks: \(self.processingTasks)
-                """)
-            
             // Wait for any ongoing processing to complete
             while self.processingTasks.contains(downloadTask.taskIdentifier) {
                 try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
-                self.logger.debug("[Download] Waiting for processing to complete for task \(downloadTask.taskIdentifier)")
             }
             
             guard let itemId = self.getItemId(for: downloadTask) else {
@@ -876,32 +850,17 @@ extension PlaybackService: URLSessionDownloadDelegate {
             }
             
             if let error = error {
-                self.logger.debug("[Download Complete] Task \(downloadTask.taskIdentifier) ended with error")
-                
                 // Check if this was a cancellation
                 let nsError = error as NSError
                 if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
-                    self.logger.debug("""
-                        [Download Cancelled]
-                        Item: \(itemId)
-                        Task: \(downloadTask.taskIdentifier)
-                        Reason: User cancelled
-                        """)
-                    // Don't set any error state for cancellation
+                    self.logger.debug("[Download] Cancelled by user: \(itemId)")
                     self.downloadTasks.removeValue(forKey: downloadTask)
                     self.downloadContinuations.removeValue(forKey: itemId)
                     return
                 }
                 
                 // Handle other errors
-                self.logger.error("""
-                    [Download Error]
-                    Item: \(itemId)
-                    Task: \(downloadTask.taskIdentifier)
-                    Error Type: \(type(of: error))
-                    Error Details: \(error)
-                    Description: \(error.localizedDescription)
-                    """)
+                self.logger.error("[Download] Error for \(itemId): \(error.localizedDescription)")
                 
                 let wrappedError = PlaybackError.downloadError("URLSession error: \(error.localizedDescription)")
                 self.activeDownloads[itemId] = DownloadState(
@@ -913,17 +872,10 @@ extension PlaybackService: URLSessionDownloadDelegate {
                 self.downloadTasks.removeValue(forKey: downloadTask)
                 self.downloadContinuations.removeValue(forKey: itemId)
             } else {
-                self.logger.debug("""
-                    [Download Complete]
-                    Item: \(itemId)
-                    Task: \(downloadTask.taskIdentifier)
-                    Status: Success
-                    """)
+                self.logger.debug("[Download] Completed successfully: \(itemId)")
             }
             
-            // Only remove the task mapping after all processing is complete
             self.downloadTasks.removeValue(forKey: downloadTask)
-            self.logger.debug("[Download] Removed task mapping for completed download: \(itemId)")
         }
     }
 } 

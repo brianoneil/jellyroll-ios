@@ -19,18 +19,15 @@ struct MediaItemResponse: Codable {
             decodedItems = try container.decode([MediaItem].self, forKey: .items)
             decodedTotalRecordCount = try container.decode(Int.self, forKey: .totalRecordCount)
             decodedStartIndex = try container.decode(Int.self, forKey: .startIndex)
-            logger.debug("Successfully decoded dictionary response")
         } catch {
             // If dictionary decoding fails, try array
-            logger.debug("Dictionary decoding failed, trying array: \(error.localizedDescription)")
             do {
                 let container = try decoder.singleValueContainer()
                 decodedItems = try container.decode([MediaItem].self)
                 decodedTotalRecordCount = decodedItems.count
                 decodedStartIndex = 0
-                logger.debug("Successfully decoded array response")
             } catch let arrayError {
-                logger.error("Array decoding also failed: \(arrayError.localizedDescription)")
+                logger.error("Failed to decode response: \(arrayError.localizedDescription)")
                 throw arrayError
             }
         }
@@ -151,7 +148,7 @@ struct MediaItem: Codable, Identifiable {
             formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
             premiereDate = formatter.date(from: premiereDateString)
             if premiereDate == nil {
-                logger.warning("Failed to parse date: \(premiereDateString)")
+                logger.error("Invalid date format: \(premiereDateString)")
             }
         } else {
             premiereDate = nil
@@ -185,13 +182,10 @@ struct MediaItem: Codable, Identifiable {
         
         userData = try container.decode(UserData.self, forKey: .userData)
         
-        // Debug logging for cast and crew
-        let decodedName = name // Capture name before using in closure
+        // Decode cast and crew
         if let peopleData = try? container.decodeIfPresent([CastMember].self, forKey: .people) {
-            logger.debug("Found \(peopleData.count) cast/crew members for \(decodedName)")
             people = peopleData
         } else {
-            logger.debug("No cast/crew data found for \(decodedName)")
             people = []
         }
     }

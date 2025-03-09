@@ -63,11 +63,7 @@ struct MovieCard: View {
                     cornerRadius: 8,
                     fallbackIcon: "film",
                     blurHash: {
-                        print("\n--- BlurHash Debug for \(item.name) ---")
-                        print("ImageTags: \(item.imageTags)")
                         let hash = item.imageBlurHashes["Primary"]?.values.first
-                        print("Selected hash: \(String(describing: hash))")
-                        print("--------------------\n")
                         return hash
                     }()
                 )
