@@ -91,6 +91,7 @@ struct SeriesDetailView: View {
         .fullScreenCover(isPresented: $showingPlayer) {
             VideoPlayerView(item: item, startTime: item.userData.playbackPositionTicks.map { PlaybackProgressUtility.ticksToSeconds($0) })
         }
+        .trackScreenView("Series Details - \(item.name)")
     }
 }
 
@@ -547,6 +548,7 @@ struct OverviewTab: View, SeriesDetailTabView {
         .onAppear {
             viewModel.loadSeasons(for: item.id)
         }
+        .trackScreenView("Series Details - \(item.name) - Overview")
     }
 }
 
@@ -632,6 +634,7 @@ struct CastCrewTab: View, SeriesDetailTabView {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.clear)
         .ignoresSafeArea()
+        .trackScreenView("Series Details - \(item.name) - Cast & Crew")
     }
 }
 
@@ -779,6 +782,7 @@ struct EpisodesTab: View, SeriesDetailTabView {
         .onAppear {
             viewModel.loadSeasons(for: item.id)
         }
+        .trackScreenView("Series Details - \(item.name) - Episodes")
     }
 }
 

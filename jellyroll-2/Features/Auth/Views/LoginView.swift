@@ -55,6 +55,7 @@ struct LoginView: View {
                 dismiss()
             }
         }
+        .trackScreenView(viewModel.showServerConfig ? "Server Configuration" : "Login")
     }
     
     private var serverConfigurationView: some View {

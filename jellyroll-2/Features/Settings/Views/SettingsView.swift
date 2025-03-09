@@ -214,6 +214,12 @@ struct SettingsView: View {
                             set: { _ in themeManager.toggleDebugEmptyContinueWatching() }
                         ))
                         .tint(themeManager.currentTheme.accentColor)
+                        
+                        Toggle("Disable Analytics", isOn: Binding(
+                            get: { !AnalyticsManager.shared.analyticsEnabled },
+                            set: { AnalyticsManager.shared.setAnalyticsEnabled(!$0) }
+                        ))
+                        .tint(themeManager.currentTheme.accentColor)
                     }
                     #endif
                 }
@@ -231,6 +237,7 @@ struct SettingsView: View {
                 }
             }
         }
+        .trackScreenView("Settings")
     }
 }
 

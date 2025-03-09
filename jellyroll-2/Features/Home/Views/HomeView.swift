@@ -95,6 +95,7 @@ struct HomeView: View {
                 }
             }
         }
+        .trackScreenView("Home")
     }
     
     private var mainContent: some View {
@@ -311,6 +312,7 @@ struct MoviesTabView: View {
             }
             .padding(.vertical)
         }
+        .trackScreenView("Movies")
     }
 }
 
@@ -341,6 +343,7 @@ struct SeriesTabView: View {
             }
             .padding(.vertical)
         }
+        .trackScreenView("TV Shows")
     }
 }
 
@@ -376,5 +379,6 @@ struct MusicTabView: View {
             }
             .padding(.vertical)
         }
+        .trackScreenView("Music")
     }
 } 

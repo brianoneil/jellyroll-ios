@@ -117,6 +117,7 @@ struct VideoPlayerView: View {
                 await viewModel.cleanup()
             }
         }
+        .trackScreenView("Video Player - \(item.name)")
     }
 }
 

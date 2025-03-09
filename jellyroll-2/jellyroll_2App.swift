@@ -12,6 +12,11 @@ struct JammPlayerApp: App {
     @StateObject private var themeManager = ThemeManager()
     @StateObject private var loginViewModel = LoginViewModel()
     
+    init() {
+        // Initialize analytics when the app starts
+        _ = AnalyticsManager.shared
+    }
+    
     var body: some Scene {
         WindowGroup {
             ContentView()

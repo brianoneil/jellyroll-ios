@@ -48,5 +48,6 @@ struct MovieDetailView: View {
         .fullScreenCover(isPresented: $showingPlayer) {
             VideoPlayerView(item: item, startTime: item.userData.playbackPositionTicks.map { PlaybackProgressUtility.ticksToSeconds($0) })
         }
+        .trackScreenView("Movie Details - \(item.name)")
     }
 } 
